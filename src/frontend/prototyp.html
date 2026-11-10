@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0e1915">
+  <title>Digitales Programmheft – LTT</title>
+  <style>
+    /* Zentrale Einstellungen für das Aussehen:
+       :root macht diese CSS-Variablen auf der ganzen Seite verfügbar.
+       Namen mit -- sind eigene Variablen. var(--name) setzt ihren Wert weiter unten ein.
+       Beispiel: --start-text: #ffffff; macht die Schrift der Startseite weiß.
+       #... ist ein Farbwert; px steht für CSS-Pixel. Bildpfade gelten relativ zu dieser HTML-Datei.
+       Die Variablen sammeln häufige Einstellungen. Weitere Details wie Schriftgrößen
+       und einzelne Abstände stehen bei den jeweiligen Elementen weiter unten. */
+    :root {
+      --start-hintergrund: #0e1915; /* Ersatzfarbe, solange das Hintergrundfoto nicht sichtbar ist. */
+      --start-text: #fffdf6;       /* Schriftfarbe auf der Startseite. */
+      --start-knopf: #f6f2e8;      /* Hintergrund des Startknopfs. */
+      --start-knopf-text: #101713; /* Schriftfarbe im Startknopf. */
+      --start-bild: url("assets/theatvorhang.png"); /* Foto der Startseite. */
+      --start-abstand: 24px;      /* Innerer Abstand links und rechts auf der Startseite. */
+      --seiten-breite: 490px;     /* Maximale Heftbreite; auf schmalen Handys wird sie kleiner. */
+      --inhalt-hintergrund: #fffdf7; /* Hintergrund der Seite mit Text und Bild. */
+      --inhalt-text: #1d302c;     /* Standard-Schriftfarbe, insbesondere für die Inhaltsseite. */
+      --inhalt-akzent: #2862bf;   /* Farbe der Menüknöpfe sowie Schrift und Rahmen des Zurück-Knopfs. */
+      --aussen-hintergrund: #FD4D4D; /* Fläche neben dem Heft auf breiten Bildschirmen. */
+      font-family: Arial, Helvetica, sans-serif; /* Erste vorhandene Schrift dieser Liste verwenden. */
+      color: var(--inhalt-text); /* Standardfarbe; einzelne Bereiche dürfen sie überschreiben. */
+      background: var(--aussen-hintergrund); /* Hintergrund der gesamten Browserseite. */
+    }
+    /* Grundregeln: gelten für beide Ansichten. * wählt alle HTML-Elemente aus. */
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    button { font: inherit; cursor: pointer; }
+    .shell { max-width: var(--seiten-breite); min-height: 100vh; margin: 0 auto; background: var(--inhalt-hintergrund); }
+    h1, h2, p { margin-top: 0; }
+    h1 { font-size: clamp(30px, 8vw, 40px); line-height: 1.2; overflow-wrap: anywhere; }
+    h2 { font-size: 25px; line-height: 1.3; }
+    p { font-size: 18px; line-height: 1.6; }
+    /* Startseite: mindestens eine Bildschirmhöhe, mit Elementen untereinander. */
+    .startseite {
+      min-height: 100vh;
+      min-height: 100svh; /* Berücksichtigt die sichtbare Höhe im mobilen Browser. */
+      display: flex;
+      flex-direction: column;
+      color: var(--start-text);
+      /* Das Foto füllt die Startseite. Auf dem Handy werden die Seiten des Fotos beschnitten,
+         ohne es zu verzerren. Das Bild lässt sich oben über --start-bild austauschen. */
+      background-color: var(--start-hintergrund);
+      background-image: var(--start-bild);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    /* Inhalt auf dem Foto: mittig ausrichten und Abstand zu den Bildschirmrändern halten. */
+    .start-inhalt {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: max(32px, env(safe-area-inset-top)) var(--start-abstand) 24px;
+    }
+    /* Schriftgestaltung: kleine LTT-Zeile, große Überschrift und erklärender Untertitel. */
+    .start-marke { font-size: 13px; font-weight: 700; letter-spacing: .22em; opacity: .8; }
+    .start-titel {
+      margin: clamp(80px, 19svh, 160px) 0 22px;
+      font-size: clamp(32px, 9vw, 46px);
+      line-height: 1.13;
+      letter-spacing: .025em;
+      text-transform: uppercase;
+      text-shadow: 0 2px 14px #0009;
+      overflow-wrap: anywhere;
+    }
+    .start-titel span { display: block; }
+    .start-untertitel { max-width: 28ch; font-size: 18px; line-height: 1.5; text-shadow: 0 2px 8px #000; }
+    /* margin-top: auto schiebt den Startknopf nach unten, wenn noch Platz übrig ist. */
+    .start-aktionen { width: 100%; max-width: 330px; margin-top: auto; padding-top: 40px; }
+    .start-knopf {
+      display: flex; align-items: center; justify-content: center; gap: 14px;
+      width: 100%; min-height: 56px; padding: 14px 20px;
+      border: 0; border-radius: 999px;
+      background: var(--start-knopf); color: var(--start-knopf-text);
+      font-size: 18px; font-weight: 700;
+    }
+    .start-knopf:hover { filter: brightness(.92); }
+
+    /* Menü und Inhaltsseiten: große Touchflächen und gut lesbarer Text. */
+    .menue-liste { display: grid; gap: 14px; margin: 24px 0; }
+    .menue-knopf { width: 100%; min-height: 56px; padding: 16px; border: 0; border-radius: 12px; background: var(--inhalt-akzent); color: var(--inhalt-hintergrund); font-size: 20px; text-align: left; }
+    .inhaltsseite { padding: 28px 20px max(28px, env(safe-area-inset-bottom)); }
+    .inhaltsbild { display: block; width: 100%; height: auto; border-radius: 14px; margin: 24px 0; }
+    .zurueck { width: 100%; min-height: 52px; padding: 14px; border: 2px solid var(--inhalt-akzent); border-radius: 12px; background: transparent; color: var(--inhalt-akzent); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <main id="screen"><p>Programmheft wird geladen …</p></main>
+  </div>
+  <script>
+    // ansicht enthält "start", "menue" oder die ID einer Inhaltsseite aus der JSON-Datei.
+    let heft;
+    let ansicht = "start";
+    const screen = document.getElementById("screen");
+
+    // Erstellt ein HTML-Element. textContent zeigt Inhalte sicher als Text an.
+    function element(tag, klasse, text) {
+      const node = document.createElement(tag);
+      if (klasse) node.className = klasse;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    // Erstellt einen Button mit Beschriftung und Klickfunktion.
+    function schaltflaeche(text, klasse, aktion) {
+      const knopf = element("button", klasse, text);
+      knopf.type = "button";
+      knopf.addEventListener("click", aktion);
+      return knopf;
+    }
+
+    // Wechselt zur gewünschten Ansicht und scrollt zum Seitenanfang.
+    function wechseln(ziel) {
+      ansicht = ziel;
+      zeichnen();
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+
+    // Baut die dunkle Startseite mit Überschrift, Untertitel und Startknopf auf.
+    function startseite() {
+      const seite = element("section", "startseite");
+      const inhalt = element("div", "start-inhalt");
+      const titel = element("h1", "start-titel");
+      // Jeder Eintrag in titelzeilen ergibt eine eigene Zeile der Überschrift.
+      for (const zeile of heft.start.titelzeilen) titel.append(element("span", "", zeile));
+      inhalt.append(element("p", "start-marke", heft.start.marke), titel,
+        element("p", "start-untertitel", heft.start.untertitel));
+      const aktionen = element("div", "start-aktionen");
+      const knopf = schaltflaeche(heft.start.knopftext, "start-knopf", () => wechseln("menue"));
+      const pfeil = element("span", "", "→");
+      pfeil.setAttribute("aria-hidden", "true");
+      knopf.append(pfeil);
+      aktionen.append(knopf);
+      inhalt.append(aktionen);
+      seite.append(inhalt);
+      screen.append(seite);
+    }
+
+    // Erstellt für jede Seite aus der JSON-Liste einen Menüknopf.
+    function menue() {
+      const seite = element("section", "inhaltsseite");
+      seite.append(element("h1", "", "Inhalt"));
+      const liste = element("nav", "menue-liste");
+      heft.seiten.forEach(eintrag => {
+        liste.append(schaltflaeche(eintrag.titel, "menue-knopf", () => wechseln(eintrag.id)));
+      });
+      seite.append(liste, schaltflaeche("← Zurück zur Startseite", "zurueck", () => wechseln("start")));
+      screen.append(seite);
+    }
+
+    // Zeigt die Elemente der ausgewählten Seite in ihrer JSON-Reihenfolge an.
+    function inhaltsseite(daten) {
+      const seite = element("article", "inhaltsseite");
+
+      daten.elemente.forEach(eintrag => {
+        if (eintrag.typ === "text") {
+          const p = document.createElement("p");
+          p.textContent = eintrag.inhalt;
+          seite.appendChild(p);
+        }
+
+        if (eintrag.typ === "bild") {
+          const img = document.createElement("img");
+          img.src = eintrag.inhalt;
+          img.alt = eintrag.alt;
+          img.className = "inhaltsbild";
+          seite.appendChild(img);
+        }
+
+        // Dieser Typ erlaubt bei Bedarf zusätzliche Überschriften in den Inhalten.
+        if (eintrag.typ === "ueberschrift") {
+          const h2 = document.createElement("h2");
+          h2.textContent = eintrag.inhalt;
+          seite.appendChild(h2);
+        }
+      });
+
+      seite.append(schaltflaeche("← Zurück zum Menü", "zurueck", () => wechseln("menue")));
+      screen.append(seite);
+    }
+
+    // Ersetzt den bisherigen Inhalt durch die ausgewählte Ansicht.
+    function zeichnen() {
+      screen.replaceChildren();
+      if (ansicht === "start") startseite();
+      else if (ansicht === "menue") menue();
+      else {
+        // find sucht den Eintrag, dessen ID dem angeklickten Menüpunkt entspricht.
+        const seite = heft.seiten.find(eintrag => eintrag.id === ansicht);
+        inhaltsseite(seite);
+      }
+    }
+
+    // Lädt das JSON, speichert die Daten und zeigt die Startseite an.
+    fetch("./heft-test.json")
+      .then(antwort => antwort.json())
+      .then(daten => {
+        heft = daten;
+        document.title = heft.titel + " – Digitales Programmheft";
+        zeichnen();
+      })
+      .catch(fehler => console.error("Fehler beim Laden:", fehler));
+  </script>
+</body>
+</html>

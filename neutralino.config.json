@@ -37,7 +37,8 @@
   },
   "cli": {
     "binaryName": "playbook",
-    "resourcesPath": "/resources/",
+    "resourcesPath": "/client/dist",
+    "copyItems": ["/template"],
     "binaryVersion": "6.10.0",
     "clientVersion": "6.10.0",
     "extensionsPath": "/extensions/",

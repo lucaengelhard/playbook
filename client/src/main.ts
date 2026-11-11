@@ -29,10 +29,28 @@ document.querySelector("#form_submit")?.addEventListener("click", async (e) => {
       document.querySelector<HTMLTextAreaElement>("#form_content")?.value,
   };
 
-  const path = await filesystem.getJoinedPath(
+  if (!play.title || play.title === "") return;
+
+  const target_path = await filesystem.getJoinedPath(
     await filesystem.getAbsolutePath(window.NL_DATAPATH),
     "plays",
-    play.title ?? "",
+    play.title,
+  );
+
+  try {
+    await filesystem.getStats(target_path);
+  } catch {
+    await filesystem.createDirectory(target_path);
+  }
+
+  await filesystem.copy(
+    await filesystem.getJoinedPath(window.NL_PATH, "template/index.html"),
+    await filesystem.getJoinedPath(target_path, "index.html"),
+  );
+
+  await filesystem.writeFile(
+    await filesystem.getJoinedPath(target_path, "content.json"),
+    JSON.stringify(play),
   );
 
   // TODO validate data
@@ -40,8 +58,13 @@ document.querySelector("#form_submit")?.addEventListener("click", async (e) => {
   // copy template to upload dir
   // write json to upload dir
   // copy media to upload dir
+  //
+  // decide responsibility (extension vs client)
 
-  await extensions.dispatch("playbook.upload", "upload", { path });
+  await extensions.dispatch("playbook.upload", "upload", {
+    title: play.title,
+    data_path: target_path,
+  });
 });
 
 document.querySelector("#sftp")?.addEventListener("click", async (e) => {

@@ -119,6 +119,7 @@ func (client *Client) quit() {
 }
 
 func (client *Client) upload(localPath, remotePath string) {
+	// TODO handle creating directories recursively
 	localFile, err := os.Open(localPath)
 	if err != nil {
 		fmt.Println("Failed to open local file:", err)

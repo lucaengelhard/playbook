@@ -15,8 +15,13 @@ func onEvent(client *Client, data EventMessage) {
 		switch data.Event {
 		case "upload":
 			{
-				fmt.Println(d)
-				// TODO: client.upload(...) (how to handle multiple files?)
+				dir_path := d["data_path"].(string)
+				title := d["title"].(string)
+				entries, _ := os.ReadDir(dir_path)
+
+				for _, e := range entries {
+					client.upload(dir_path+"/"+e.Name(), "/plays/"+title+"/"+e.Name())
+				}
 			}
 		case "connect":
 			{
@@ -66,5 +71,6 @@ func main() {
 	}
 
 	defer client.quit()
+
 	client.listen(onEvent)
 }

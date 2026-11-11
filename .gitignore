@@ -1,6 +1,5 @@
-node_modules
-dist
 bin
-*.log
-plays
-.tmp
+build
+bindings
+dist
+node_modules

@@ -1,0 +1,54 @@
+{
+  "titel": "Hannibal",
+  "start": {
+    "marke": "LTT · DIGITALES PROGRAMMHEFT",
+    "titelzeilen": [
+      "Theater",
+      "live",
+      "mitgestalten"
+    ],
+    "untertitel": "Deine Stimme. Deine Entscheidung. Dein Erlebnis.",
+    "knopftext": "Los geht’s"
+  },
+  "seiten": [
+    {
+      "id": "ueber",
+      "titel": "Über das Stück",
+      "elemente": [
+        {
+          "typ": "ueberschrift",
+          "inhalt": "Hannibal – Über das Stück"
+        },
+        {
+          "typ": "text",
+          "inhalt": "Einführung in das Theaterstück Hannibal. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
+        },
+        {
+          "typ": "bild",
+          "inhalt": "assets/theatvorhang.png",
+          "alt": "Geschlossener roter Theatervorhang auf einer Bühne"
+        }
+      ]
+    },
+    {
+      "id": "besetzung",
+      "titel": "Besetzung",
+      "elemente": [{ "typ": "text", "inhalt": "Test" }]
+    },
+    {
+      "id": "bilder",
+      "titel": "Bilder",
+      "elemente": [{ "typ": "text", "inhalt": "Test" }]
+    },
+    {
+      "id": "mitmachen",
+      "titel": "Mitmachen",
+      "elemente": [{ "typ": "text", "inhalt": "Test" }]
+    },
+    {
+      "id": "mitwirkende",
+      "titel": "Mitwirkende",
+      "elemente": [{ "typ": "text", "inhalt": "Test" }]
+    }
+  ]
+}

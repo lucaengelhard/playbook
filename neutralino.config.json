@@ -1,0 +1,53 @@
+{
+  "applicationId": "playbook",
+  "version": "1.0.0",
+  "defaultMode": "window",
+  "documentRoot": "/client/dist/",
+  "url": "/",
+  "enableServer": true,
+  "enableNativeAPI": true,
+  "enableExtensions": true,
+  "nativeAllowList": [
+    "app.*",
+    "os.*",
+    "events.*",
+    "resources.*",
+    "filesystem.*",
+    "extensions.*"
+  ],
+  "extensions": [
+    {
+      "id": "playbook.upload",
+      "commandLinux": "${NL_PATH}/extensions/upload/bin/linux/playbook-upload-amd64",
+      "commandDarwin": "${NL_PATH}/extensions/upload/bin/mac/playbook-upload-amd64",
+      "commandWindows": "${NL_PATH}/extensions/upload/bin/linux/playbook-upload-amd64.exe"
+    }
+  ],
+  "modes": {
+    "window": {
+      "title": "playbook",
+      "width": 800,
+      "height": 500,
+      "minWidth": 400,
+      "minHeight": 200,
+      "icon": "/client/public/theater.png",
+      "injectGlobals": true,
+      "enableInspector": true
+    }
+  },
+  "cli": {
+    "binaryName": "playbook",
+    "resourcesPath": "/resources/",
+    "binaryVersion": "6.10.0",
+    "clientVersion": "6.10.0",
+    "extensionsPath": "/extensions/",
+    "extensionsExclude": ".\\.go$|.\\.mod$|.\\.sum$|.\\.sh$",
+    "frontendLibrary": {
+      "devUrl": "http://localhost:5173",
+      "projectPath": "/client/",
+      "initCommand": "pnpm install",
+      "devCommand": "pnpm dev",
+      "buildCommand": "pnpm build"
+    }
+  }
+}

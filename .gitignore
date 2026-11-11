@@ -1,3 +1,4 @@
 node_modules
-temp_playbook_*
 dist
+bin
+*.log

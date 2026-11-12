@@ -1,5 +1,13 @@
+.task
 bin
-build
-bindings
-dist
-node_modules
+frontend/dist
+frontend/node_modules
+frontend/bindings
+build/linux/appimage/build
+build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
+# Mobile generated (per-machine; overlays hold absolute paths)
+build/ios/
+build/android/
+build/windows/wails.exe.manifest
+build/windows/info.json
+build/windows/nsis/wails_tools.nsh

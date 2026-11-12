@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
@@ -12,7 +10,6 @@ import (
 
 func main() {
 	a := app.New()
-	fmt.Println(a)
 	w := a.NewWindow("Hello World")
 
 	client := &Client{}

@@ -1,38 +1,224 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
     <head>
-        <meta charset="UTF-8" />
-        <link rel="icon" type="image/svg+xml" href="/wails.png" />
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-        />
-        <link rel="stylesheet" href="/style.css" />
-        <script type="module" src="/src/main.js"></script>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Digitales Programmheft – LTT</title>
+        <style>
+            * {
+                box-sizing: border-box;
+            }
 
-        <title>Playbook</title>
+            body {
+                margin: 0;
+                background: #e9e7e3;
+                color: #252525;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 18px;
+                line-height: 1.6;
+            }
+
+            main {
+                max-width: 600px;
+                min-height: 100vh;
+                margin: 0 auto;
+                padding: 24px 20px;
+                background: #fffdf7;
+                overflow-wrap: anywhere;
+            }
+
+            h1,
+            h2 {
+                line-height: 1.25;
+            }
+
+            h1 {
+                margin: 16px 0 24px;
+                font-size: 32px;
+            }
+
+            h2 {
+                margin-top: 28px;
+                font-size: 24px;
+            }
+
+            img {
+                display: block;
+                width: 100%;
+                height: auto;
+                margin: 24px 0;
+            }
+
+            button {
+                width: 100%;
+                min-height: 52px;
+                padding: 12px 16px;
+                border: 1px solid #792b30;
+                border-radius: 4px;
+                background: #792b30;
+                color: white;
+                font: inherit;
+                text-align: left;
+                cursor: pointer;
+            }
+
+            button:hover {
+                background: #602126;
+            }
+
+            button:focus-visible {
+                outline: 3px solid #185da8;
+                outline-offset: 3px;
+            }
+
+            .zurueck {
+                margin-top: 28px;
+                background: transparent;
+                color: #792b30;
+            }
+
+            .zurueck:hover {
+                background: #f0e4e3;
+            }
+
+            .menue-liste {
+                display: grid;
+                gap: 12px;
+            }
+
+            /* Die Ansichten teilen sich eine Seite und werden abwechselnd eingeblendet. */
+            [hidden] {
+                display: none;
+            }
+        </style>
     </head>
     <body>
-        <form>
-            <label for="sftp_host">Host</label>
-            <input type="text" id="sftp_host" name="sftp_host" /><br />
-            <label for="sftp_port">Port</label>
-            <input type="text" id="sftp_port" name="sftp_port" /><br />
-            <label for="sftp_pwd">Password</label>
-            <input type="text" id="sftp_pwd" name="sftp_pwd" /><br />
-            <label for="sftp_user">User</label>
-            <input type="text" id="sftp_user" name="sftp_user" /><br />
-            <button id="sftp">Connect to SFTP</button>
-        </form>
-        <form>
-            <label for="form_title">Titel:</label>
-            <input type="text" id="form_title" name="form_title" /><br />
-            <label for="form_hero">Hero Image:</label>
-            <button id="form_hero">Select...</button>
-            <div id="form_hero_selected"></div>
-            <label for="form_content">Content:</label><br />
-            <textarea name="form_content" id="form_content"></textarea><br />
-            <button id="form_submit">Submit</button>
-        </form>
+        <main>
+            <p id="status" role="status">Programmheft wird geladen …</p>
+
+            <section id="startseite" hidden>
+                <p>Landestheater Tübingen</p>
+                <h1 id="stuecktitel" tabindex="-1"></h1>
+                <p>Digitales Programmheft</p>
+                <img src="assets/theatvorhang.png" alt="Roter Theatervorhang" />
+                <button id="oeffnen" type="button">Programmheft öffnen</button>
+            </section>
+
+            <section id="menue" hidden>
+                <h1 tabindex="-1">Inhalt</h1>
+                <nav
+                    id="menue-liste"
+                    class="menue-liste"
+                    aria-label="Kapitel"
+                ></nav>
+                <button id="zur-startseite" class="zurueck" type="button">
+                    Zurück zur Startseite
+                </button>
+            </section>
+
+            <section id="inhaltsseite" hidden>
+                <h1 id="kapiteltitel" tabindex="-1"></h1>
+                <div id="kapitelinhalt"></div>
+                <button id="zum-menue" class="zurueck" type="button">
+                    Zurück zum Inhalt
+                </button>
+            </section>
+        </main>
+
+        <script>
+            const startseite = document.getElementById("startseite");
+            const menue = document.getElementById("menue");
+            const inhaltsseite = document.getElementById("inhaltsseite");
+            const status = document.getElementById("status");
+
+            function zeigeAnsicht(ansicht) {
+                startseite.hidden = true;
+                menue.hidden = true;
+                inhaltsseite.hidden = true;
+                ansicht.hidden = false;
+
+                // Nach einem Wechsel soll auch die Tastaturbedienung oben weitergehen.
+                ansicht.querySelector("h1").focus({ preventScroll: true });
+                window.scrollTo(0, 0);
+            }
+
+            function zeigeKapitel(kapitel) {
+                document.getElementById("kapiteltitel").textContent =
+                    kapitel.titel;
+                const inhalt = document.getElementById("kapitelinhalt");
+                inhalt.replaceChildren();
+
+                // Reihenfolge und Inhalt kommen aus der bestehenden JSON-Datei.
+                for (const eintrag of kapitel.elemente) {
+                    let element;
+
+                    if (eintrag.typ === "text") {
+                        element = document.createElement("p");
+                        element.textContent = eintrag.inhalt;
+                    } else if (eintrag.typ === "ueberschrift") {
+                        element = document.createElement("h2");
+                        element.textContent = eintrag.inhalt;
+                    } else if (eintrag.typ === "bild") {
+                        element = document.createElement("img");
+                        element.src = eintrag.inhalt;
+                        element.alt = eintrag.alt || "";
+                    }
+
+                    if (element) {
+                        inhalt.appendChild(element);
+                    }
+                }
+
+                zeigeAnsicht(inhaltsseite);
+            }
+
+            document
+                .getElementById("oeffnen")
+                .addEventListener("click", () => zeigeAnsicht(menue));
+            document
+                .getElementById("zur-startseite")
+                .addEventListener("click", () => zeigeAnsicht(startseite));
+            document
+                .getElementById("zum-menue")
+                .addEventListener("click", () => zeigeAnsicht(menue));
+
+            async function ladeHeft() {
+                try {
+                    const antwort = await fetch("./heft-test.json");
+                    if (!antwort.ok) {
+                        throw new Error("HTTP-Fehler " + antwort.status);
+                    }
+                    const heft = await antwort.json();
+
+                    document.title = heft.titel + " – Digitales Programmheft";
+                    document.getElementById("stuecktitel").textContent =
+                        heft.titel;
+                    const liste = document.getElementById("menue-liste");
+
+                    for (const kapitel of heft.seiten) {
+                        const knopf = document.createElement("button");
+                        knopf.type = "button";
+                        knopf.textContent = kapitel.titel;
+                        knopf.addEventListener("click", () =>
+                            zeigeKapitel(kapitel),
+                        );
+                        liste.appendChild(knopf);
+                    }
+
+                    status.hidden = true;
+                    startseite.hidden = false;
+                } catch (fehler) {
+                    status.hidden = false;
+                    status.textContent =
+                        "Das Programmheft konnte nicht geladen werden. Bitte laden Sie die Seite erneut.";
+                    console.error(
+                        "Fehler beim Laden des Programmhefts:",
+                        fehler,
+                    );
+                }
+            }
+
+            ladeHeft();
+        </script>
     </body>
 </html>

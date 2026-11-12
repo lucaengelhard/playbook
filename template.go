@@ -6,10 +6,8 @@ import (
 	"os"
 )
 
-//go:embed all:template
+//go:embed all:frontend
 var template embed.FS
-
-type Template struct{}
 
 type Play struct {
 	Title     string
@@ -17,17 +15,17 @@ type Play struct {
 	Content   string
 }
 
-func (t *Template) Scaffold(play Play) {
+func Scaffold(client *Client, play Play) {
 	entries, _ := template.ReadDir("template")
 	// TODO make recursive
 	for _, e := range entries {
 		path := "template/" + e.Name()
-		file, err := os.Open(path)
+		_, err := os.Open(path)
 		if err != nil {
 			fmt.Println("Failed to open local file:", err)
 			return
 		}
 
-		client.Upload(file, play.Title+"/"+e.Name())
+		//client.Upload(file, play.Title+"/"+e.Name())
 	}
 }

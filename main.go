@@ -13,7 +13,7 @@ func main() {
 	w := a.NewWindow("Hello World")
 
 	client := &Client{}
-	//defer client.Close()
+	defer client.Close()
 
 	hostEntry := widget.NewEntry()
 	portEntry := widget.NewEntry()
@@ -55,8 +55,6 @@ func main() {
 				HeroImage: heroImagePath,
 				Content:   content.Text,
 			})
-
-			// TODO upload bytes & template to server
 		},
 	}
 

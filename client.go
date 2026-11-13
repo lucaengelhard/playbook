@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
-	"os"
+	"path"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -40,25 +39,29 @@ func (client *Client) Connect(host, port, user, password string) {
 	client.sftp = sftp_client
 }
 
-func (client *Client) Upload(localFile *os.File, remotePath string) {
-	// TODO handle creating directories recursively
+func (client *Client) Upload(localFile []byte, remotePath string) {
 	// TODO connect if not connected
-	// TODO use mutex
 
-	defer localFile.Close()
+	dirPath := path.Dir(remotePath)
+	err := client.sftp.MkdirAll(dirPath)
+	if err != nil {
+		log.Println("Error while creating remote directory:", dirPath, err)
+		return
+	}
 
 	remoteFile, err := client.sftp.Create(remotePath)
 	if err != nil {
-		fmt.Println("Failed to create remote file:", err)
+		log.Println("Error while creating remote file", remotePath, err)
 		return
 	}
 	defer remoteFile.Close()
 
-	_, err = io.Copy(remoteFile, localFile)
+	_, err = remoteFile.Write(localFile)
 	if err != nil {
-		fmt.Println("Failed to upload file:", err)
+		log.Println("Error while writing to remote file", remotePath, err)
 		return
 	}
+	log.Println("File", remoteFile.Name(), "written successfully")
 }
 
 func (client *Client) Close() {

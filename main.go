@@ -13,6 +13,7 @@ func main() {
 	w := a.NewWindow("Hello World")
 
 	client := &Client{}
+	//defer client.Close()
 
 	hostEntry := widget.NewEntry()
 	portEntry := widget.NewEntry()

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 
 	"github.com/pkg/sftp"
@@ -25,8 +26,16 @@ func (client *Client) Connect(host, port, user, password string) {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	ssh_connection, _ := ssh.Dial("tcp", fmt.Sprintf("%s:%s", host, port), config)
-	sftp_client, _ := sftp.NewClient(ssh_connection)
+	ssh_connection, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", host, port), config)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	sftp_client, err := sftp.NewClient(ssh_connection)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 	client.ssh = ssh_connection
 	client.sftp = sftp_client
 }
@@ -49,5 +58,15 @@ func (client *Client) Upload(localFile *os.File, remotePath string) {
 	if err != nil {
 		fmt.Println("Failed to upload file:", err)
 		return
+	}
+}
+
+func (client *Client) Close() {
+	if client.sftp != nil {
+		client.sftp.Close()
+	}
+
+	if client.ssh != nil {
+		client.ssh.Close()
 	}
 }

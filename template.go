@@ -88,17 +88,4 @@ func Scaffold(client *Client, play Play) {
 	}
 	defer contentRemote.Close()
 	contentRemote.Write(content)
-
-	/* entries, _ := template.ReadDir("template")
-	// TODO make recursive
-	for _, e := range entries {
-		path := "template/" + e.Name()
-		_, err := os.Open(path)
-		if err != nil {
-			fmt.Println("Failed to open local file:", err)
-			return
-		}
-
-		//client.Upload(file, play.Title+"/"+e.Name())
-	} */
 }

@@ -1,63 +1,43 @@
 package main
 
 import (
-	"fyne.io/fyne/v2"
+	"flag"
+
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+	"github.com/tompston/gut"
 )
 
 func main() {
+	// TODO
+	// Flags/Settings global struct?
+	// Add Dev mode flag
+	generateFlag := flag.Bool("gen", false, "Generate typescript types to ./frontend")
+	flag.Parse()
+
+	if *generateFlag {
+		gut.Generate(
+			"./frontend/types.gen.ts",
+			gut.Convert(Play{}),
+			gut.Settings{
+				FirstLine: "// DONT EDIT THIS FILE! It is auto-generated",
+				DateType:  "Date",
+			},
+		)
+		return
+	}
+
 	a := app.New()
 	w := a.NewWindow("Hello World")
 
-	client := &Client{}
+	client := NewClient(w)
 	defer client.Close()
 
-	hostEntry := widget.NewEntry()
-	portEntry := widget.NewEntry()
-	userEntry := widget.NewEntry()
-	pwdEntry := widget.NewEntry()
+	editor := createEditor(client)
 
-	connect_form := &widget.Form{
-		Items: []*widget.FormItem{
-			{Text: "Host", Widget: hostEntry},
-			{Text: "Port", Widget: portEntry},
-			{Text: "User", Widget: userEntry},
-			{Text: "Password", Widget: pwdEntry},
-		},
-		OnSubmit: func() {
-			client.Connect(hostEntry.Text, portEntry.Text, userEntry.Text, pwdEntry.Text)
-		},
-	}
-
-	titleEntry := widget.NewEntry()
-	content := widget.NewMultiLineEntry()
-	var heroImagePath string
-
-	heroSelector := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
-		heroImagePath = reader.URI().Path()
-	}, w)
-	heroImageButton := widget.NewButton("Select...", func() {
-		heroSelector.Show()
-	})
-
-	form := &widget.Form{
-		Items: []*widget.FormItem{
-			{Text: "Title", Widget: titleEntry},
-			{Text: "Content", Widget: content},
-			{Widget: heroImageButton},
-		},
-		OnSubmit: func() {
-			Scaffold(client, Play{
-				Title:     titleEntry.Text,
-				HeroImage: heroImagePath,
-				Content:   content.Text,
-			})
-		},
-	}
-
-	w.SetContent(container.NewVBox(connect_form, form))
+	w.SetContent(container.NewVBox(widget.NewButton("Connect", func() {
+		client.dialog.Show()
+	}), editor))
 	w.ShowAndRun()
 }

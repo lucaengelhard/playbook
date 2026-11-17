@@ -9,20 +9,25 @@
                 box-sizing: border-box;
             }
 
+            /* Die Standardschriftgröße aus dem Browser beibehalten. */
+            html {
+                font-size: 100%;
+            }
+
             body {
                 margin: 0;
                 background: #e9e7e3;
                 color: #252525;
                 font-family: Arial, Helvetica, sans-serif;
-                font-size: 18px;
+                font-size: 1.125rem;
                 line-height: 1.6;
             }
 
             main {
-                max-width: 600px;
+                max-width: 37.5rem;
                 min-height: 100vh;
                 margin: 0 auto;
-                padding: 24px 20px;
+                padding: 1.5rem 1.25rem;
                 background: #fffdf7;
                 overflow-wrap: anywhere;
             }
@@ -33,28 +38,28 @@
             }
 
             h1 {
-                margin: 16px 0 24px;
-                font-size: 32px;
+                margin: 1rem 0 1.5rem;
+                font-size: 2rem;
             }
 
             h2 {
-                margin-top: 28px;
-                font-size: 24px;
+                margin-top: 1.75rem;
+                font-size: 1.5rem;
             }
 
             img {
                 display: block;
                 width: 100%;
                 height: auto;
-                margin: 24px 0;
+                margin: 1.5rem 0;
             }
 
             button {
                 width: 100%;
-                min-height: 52px;
-                padding: 12px 16px;
+                min-height: 3.25rem;
+                padding: 0.75rem 1rem;
                 border: 1px solid #792b30;
-                border-radius: 4px;
+                border-radius: 0.25rem;
                 background: #792b30;
                 color: white;
                 font: inherit;
@@ -72,7 +77,7 @@
             }
 
             .zurueck {
-                margin-top: 28px;
+                margin-top: 1.75rem;
                 background: transparent;
                 color: #792b30;
             }
@@ -83,7 +88,7 @@
 
             .menue-liste {
                 display: grid;
-                gap: 12px;
+                gap: 0.75rem;
             }
 
             /* Die Ansichten teilen sich eine Seite und werden abwechselnd eingeblendet. */
@@ -100,7 +105,7 @@
                 <p>Landestheater Tübingen</p>
                 <h1 id="stuecktitel" tabindex="-1"></h1>
                 <p>Digitales Programmheft</p>
-                <img src="assets/theatvorhang.png" alt="Roter Theatervorhang" />
+                <div id="titelbild"></div>
                 <button id="oeffnen" type="button">Programmheft öffnen</button>
             </section>
 
@@ -125,100 +130,6 @@
             </section>
         </main>
 
-        <script>
-            const startseite = document.getElementById("startseite");
-            const menue = document.getElementById("menue");
-            const inhaltsseite = document.getElementById("inhaltsseite");
-            const status = document.getElementById("status");
-
-            function zeigeAnsicht(ansicht) {
-                startseite.hidden = true;
-                menue.hidden = true;
-                inhaltsseite.hidden = true;
-                ansicht.hidden = false;
-
-                // Nach einem Wechsel soll auch die Tastaturbedienung oben weitergehen.
-                ansicht.querySelector("h1").focus({ preventScroll: true });
-                window.scrollTo(0, 0);
-            }
-
-            function zeigeKapitel(kapitel) {
-                document.getElementById("kapiteltitel").textContent =
-                    kapitel.titel;
-                const inhalt = document.getElementById("kapitelinhalt");
-                inhalt.replaceChildren();
-
-                // Reihenfolge und Inhalt kommen aus der bestehenden JSON-Datei.
-                for (const eintrag of kapitel.elemente) {
-                    let element;
-
-                    if (eintrag.typ === "text") {
-                        element = document.createElement("p");
-                        element.textContent = eintrag.inhalt;
-                    } else if (eintrag.typ === "ueberschrift") {
-                        element = document.createElement("h2");
-                        element.textContent = eintrag.inhalt;
-                    } else if (eintrag.typ === "bild") {
-                        element = document.createElement("img");
-                        element.src = eintrag.inhalt;
-                        element.alt = eintrag.alt || "";
-                    }
-
-                    if (element) {
-                        inhalt.appendChild(element);
-                    }
-                }
-
-                zeigeAnsicht(inhaltsseite);
-            }
-
-            document
-                .getElementById("oeffnen")
-                .addEventListener("click", () => zeigeAnsicht(menue));
-            document
-                .getElementById("zur-startseite")
-                .addEventListener("click", () => zeigeAnsicht(startseite));
-            document
-                .getElementById("zum-menue")
-                .addEventListener("click", () => zeigeAnsicht(menue));
-
-            async function ladeHeft() {
-                try {
-                    const antwort = await fetch("./heft-test.json");
-                    if (!antwort.ok) {
-                        throw new Error("HTTP-Fehler " + antwort.status);
-                    }
-                    const heft = await antwort.json();
-
-                    document.title = heft.titel + " – Digitales Programmheft";
-                    document.getElementById("stuecktitel").textContent =
-                        heft.titel;
-                    const liste = document.getElementById("menue-liste");
-
-                    for (const kapitel of heft.seiten) {
-                        const knopf = document.createElement("button");
-                        knopf.type = "button";
-                        knopf.textContent = kapitel.titel;
-                        knopf.addEventListener("click", () =>
-                            zeigeKapitel(kapitel),
-                        );
-                        liste.appendChild(knopf);
-                    }
-
-                    status.hidden = true;
-                    startseite.hidden = false;
-                } catch (fehler) {
-                    status.hidden = false;
-                    status.textContent =
-                        "Das Programmheft konnte nicht geladen werden. Bitte laden Sie die Seite erneut.";
-                    console.error(
-                        "Fehler beim Laden des Programmhefts:",
-                        fehler,
-                    );
-                }
-            }
-
-            ladeHeft();
-        </script>
+        <script src="./prototype2.js" defer></script>
     </body>
 </html>

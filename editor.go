@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json/v2"
 	"errors"
+	"io/fs"
 	"log"
 	"os"
 	"path"
@@ -14,12 +15,75 @@ import (
 
 //go:embed all:frontend
 var frontendFs embed.FS
+var devMode = false
 
 type Play struct {
 	Title     string
 	HeroImage string
 	Content   string
 	Gallery   []string `json:"Gallery,omitempty"`
+}
+
+func uploadFrontendFiles(entries []fs.DirEntry, dirPath string, client *Client, devMode bool) error {
+	for _, entry := range entries {
+		if entry.IsDir() {
+			// TODO
+			continue
+		}
+		filePath := path.Join("frontend", entry.Name())
+		file, err := os.ReadFile(filePath)
+		if err != nil {
+			log.Println("Error while reading template file", err)
+			continue
+		}
+		if devMode {
+			err = os.WriteFile(path.Join(dirPath, entry.Name()), file, 0755)
+		} else {
+			err = client.Upload(file, path.Join(dirPath, entry.Name()))
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func ScaffoldOffline(play Play) error {
+	if play.Title == "" {
+		return errors.New("Cannot upload play with empty title :(")
+	}
+
+	dirPath := path.Join("plays", play.Title)
+
+	err := os.MkdirAll(path.Join(dirPath, "media"), 0755)
+	if err != nil {
+		return err
+	}
+
+	entries, err := frontendFs.ReadDir("frontend")
+
+	err = uploadFrontendFiles(entries, dirPath, nil, true)
+	if err != nil {
+		return err
+	}
+
+	heroImage, err := os.ReadFile(play.HeroImage)
+	if err != nil {
+		return err
+	}
+
+	play.HeroImage = path.Join("media", path.Base(play.HeroImage))
+	err = os.WriteFile(path.Join(dirPath, play.HeroImage), heroImage, 0755)
+	if err != nil {
+		return err
+	}
+
+	content, err := json.Marshal(play)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path.Join(dirPath, "content.json"), content, 0755)
+
 }
 
 func Scaffold(client *Client, play Play) error {
@@ -41,22 +105,9 @@ func Scaffold(client *Client, play Play) error {
 
 	entries, err := frontendFs.ReadDir("frontend")
 
-	for _, entry := range entries {
-		if entry.IsDir() {
-			// TODO
-			continue
-		}
-		filePath := path.Join("frontend", entry.Name())
-		file, err := os.ReadFile(filePath)
-		if err != nil {
-			log.Println("Error while reading template file", err)
-			continue
-		}
-
-		err = client.Upload(file, path.Join(dirPath, entry.Name()))
-		if err != nil {
-			return err
-		}
+	err = uploadFrontendFiles(entries, dirPath, client, false)
+	if err != nil {
+		return err
 	}
 
 	heroImage, err := os.ReadFile(play.HeroImage)
@@ -81,6 +132,7 @@ func Scaffold(client *Client, play Play) error {
 func createEditor(client *Client) *widget.Form {
 	play := Play{}
 
+	devModeCheckbox := widget.NewCheck("Stores directory locally", func(b bool) { devMode = b })
 	titleEntry := widget.NewEntry()
 	heroImageButton := widget.NewButton("Select...", func() {
 		file, err := zenity.SelectFile(
@@ -132,6 +184,7 @@ func createEditor(client *Client) *widget.Form {
 	})
 
 	form := widget.NewForm(
+		widget.NewFormItem("Dev Mode", devModeCheckbox),
 		widget.NewFormItem("Title", titleEntry),
 		widget.NewFormItem("Content", content),
 		widget.NewFormItem("Hero Image", heroImageButton),
@@ -141,7 +194,12 @@ func createEditor(client *Client) *widget.Form {
 		play.Title = titleEntry.Text
 		play.Content = content.Text
 
-		err := Scaffold(client, play)
+		var err error
+		if devMode {
+			err = ScaffoldOffline(play)
+		} else {
+			err = Scaffold(client, play)
+		}
 		if err != nil {
 			log.Println(err)
 		}

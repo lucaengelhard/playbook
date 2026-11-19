@@ -35,7 +35,7 @@ func uploadFrontendFiles(entries []fs.DirEntry, dirPath string, client *Client) 
 			log.Println("Error while reading template file", err)
 			continue
 		}
-		if GlobalSettings.LocalUpload {
+		if GlobalSettings.Data.LocalUpload {
 			err = os.WriteFile(path.Join(dirPath, entry.Name()), file, 0755)
 		} else {
 			err = client.Upload(file, path.Join(dirPath, entry.Name()))
@@ -128,12 +128,16 @@ func Scaffold(client *Client, play Play) error {
 	return client.Upload(content, path.Join(dirPath, "content.json"))
 }
 
-func createEditor(client *Client) *widget.Form {
-	play := Play{}
-
-	localUploadCheckbox := widget.NewCheck("Stores directory locally", func(b bool) { GlobalSettings.LocalUpload = b })
-	localUploadCheckbox.Checked = GlobalSettings.LocalUpload
+func createEditor(client *Client, play Play) *widget.Form {
+	localUploadCheckbox := widget.NewCheck("Stores directory locally", func(b bool) {
+		GlobalSettings.Update(func(s Settings) Settings {
+			s.LocalUpload = b
+			return s
+		})
+	})
+	localUploadCheckbox.Checked = GlobalSettings.Data.LocalUpload
 	titleEntry := widget.NewEntry()
+	titleEntry.Text = play.Title
 	heroImageButton := widget.NewButton("Select...", func() {
 		file, err := zenity.SelectFile(
 			zenity.FileFilters{
@@ -158,6 +162,7 @@ func createEditor(client *Client) *widget.Form {
 	})
 
 	content := widget.NewMultiLineEntry()
+	content.Text = play.Content
 
 	galleryButton := widget.NewButton("Select Images...", func() {
 		files, err := zenity.SelectFileMultiple(
@@ -195,7 +200,7 @@ func createEditor(client *Client) *widget.Form {
 		play.Content = content.Text
 
 		var err error
-		if GlobalSettings.LocalUpload {
+		if GlobalSettings.Data.LocalUpload {
 			err = ScaffoldOffline(play)
 		} else {
 			err = Scaffold(client, play)
@@ -203,6 +208,8 @@ func createEditor(client *Client) *widget.Form {
 		if err != nil {
 			log.Println(err)
 		}
+
+		update(client)
 		// TODO
 		// Clear fields
 		// reset play struct

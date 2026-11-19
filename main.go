@@ -1,8 +1,6 @@
 package main
 
 import (
-	"flag"
-
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
@@ -10,13 +8,8 @@ import (
 )
 
 func main() {
-	// TODO
-	// Flags/Settings global struct?
-	// Add Dev mode flag
-	generateFlag := flag.Bool("gen", false, "Generate typescript types to ./frontend")
-	flag.Parse()
-
-	if *generateFlag {
+	applyFlags()
+	if GlobalSettings.Generate {
 		gut.Generate(
 			"./frontend/types.gen.ts",
 			gut.Convert(Play{}),

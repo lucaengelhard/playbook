@@ -132,6 +132,7 @@ func createEditor(client *Client) *widget.Form {
 	play := Play{}
 
 	localUploadCheckbox := widget.NewCheck("Stores directory locally", func(b bool) { GlobalSettings.LocalUpload = b })
+	localUploadCheckbox.Checked = GlobalSettings.LocalUpload
 	titleEntry := widget.NewEntry()
 	heroImageButton := widget.NewButton("Select...", func() {
 		file, err := zenity.SelectFile(

@@ -1,8 +1,9 @@
 package main
 
 import (
-	"flag"
+	"log"
 
+	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
@@ -10,13 +11,9 @@ import (
 )
 
 func main() {
-	// TODO
-	// Flags/Settings global struct?
-	// Add Dev mode flag
-	generateFlag := flag.Bool("gen", false, "Generate typescript types to ./frontend")
-	flag.Parse()
+	applyFlags()
 
-	if *generateFlag {
+	if GlobalSettings.Data.Generate {
 		gut.Generate(
 			"./frontend/types.gen.ts",
 			gut.Convert(Play{}),
@@ -34,10 +31,49 @@ func main() {
 	client := NewClient(w)
 	defer client.Close()
 
-	editor := createEditor(client)
+	var nav *container.Navigation
 
-	w.SetContent(container.NewVBox(widget.NewButton("Connect", func() {
-		client.dialog.Show()
-	}), editor))
+	playList := container.NewVBox()
+
+	State.OnUpdate(func(p []Play) {
+		playList.Objects = []fyne.CanvasObject{}
+		for _, play := range p {
+			playList.Objects = append(playList.Objects, widget.NewButton(play.Title, func() {
+				nav.PushWithTitle(createEditor(client, play), play.Title)
+			}))
+		}
+	})
+
+	sidebar := container.NewVScroll(
+		container.NewVBox(
+			widget.NewButton("Connect", func() {
+				client.dialog.Show()
+			}),
+			widget.NewButton("Update", func() {
+				err := update(client)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+			}),
+			widget.NewSeparator(),
+			playList,
+			widget.NewButton("New", func() {
+				nav.PushWithTitle(createEditor(client, Play{}), "New Play")
+			}),
+		))
+
+	content := container.NewVBox(widget.NewLabel("Select a Play :)"))
+	nav = container.NewNavigationWithTitle(content, "Home")
+
+	split := container.NewHSplit(sidebar, nav)
+	split.SetOffset(0.2)
+
+	err := update(client)
+	if err != nil {
+		log.Println(err)
+	}
+
+	w.SetContent(split)
 	w.ShowAndRun()
 }

@@ -15,7 +15,6 @@ import (
 
 //go:embed all:frontend
 var frontendFs embed.FS
-var devMode = false
 
 type Play struct {
 	Title     string
@@ -24,7 +23,7 @@ type Play struct {
 	Gallery   []string `json:"Gallery,omitempty"`
 }
 
-func uploadFrontendFiles(entries []fs.DirEntry, dirPath string, client *Client, devMode bool) error {
+func uploadFrontendFiles(entries []fs.DirEntry, dirPath string, client *Client) error {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			// TODO
@@ -36,7 +35,7 @@ func uploadFrontendFiles(entries []fs.DirEntry, dirPath string, client *Client, 
 			log.Println("Error while reading template file", err)
 			continue
 		}
-		if devMode {
+		if GlobalSettings.LocalUpload {
 			err = os.WriteFile(path.Join(dirPath, entry.Name()), file, 0755)
 		} else {
 			err = client.Upload(file, path.Join(dirPath, entry.Name()))
@@ -62,7 +61,7 @@ func ScaffoldOffline(play Play) error {
 
 	entries, err := frontendFs.ReadDir("frontend")
 
-	err = uploadFrontendFiles(entries, dirPath, nil, true)
+	err = uploadFrontendFiles(entries, dirPath, nil)
 	if err != nil {
 		return err
 	}
@@ -105,7 +104,7 @@ func Scaffold(client *Client, play Play) error {
 
 	entries, err := frontendFs.ReadDir("frontend")
 
-	err = uploadFrontendFiles(entries, dirPath, client, false)
+	err = uploadFrontendFiles(entries, dirPath, client)
 	if err != nil {
 		return err
 	}
@@ -132,7 +131,8 @@ func Scaffold(client *Client, play Play) error {
 func createEditor(client *Client) *widget.Form {
 	play := Play{}
 
-	devModeCheckbox := widget.NewCheck("Stores directory locally", func(b bool) { devMode = b })
+	localUploadCheckbox := widget.NewCheck("Stores directory locally", func(b bool) { GlobalSettings.LocalUpload = b })
+	localUploadCheckbox.Checked = GlobalSettings.LocalUpload
 	titleEntry := widget.NewEntry()
 	heroImageButton := widget.NewButton("Select...", func() {
 		file, err := zenity.SelectFile(
@@ -184,7 +184,7 @@ func createEditor(client *Client) *widget.Form {
 	})
 
 	form := widget.NewForm(
-		widget.NewFormItem("Dev Mode", devModeCheckbox),
+		widget.NewFormItem("Local Upload", localUploadCheckbox),
 		widget.NewFormItem("Title", titleEntry),
 		widget.NewFormItem("Content", content),
 		widget.NewFormItem("Hero Image", heroImageButton),
@@ -195,7 +195,7 @@ func createEditor(client *Client) *widget.Form {
 		play.Content = content.Text
 
 		var err error
-		if devMode {
+		if GlobalSettings.LocalUpload {
 			err = ScaffoldOffline(play)
 		} else {
 			err = Scaffold(client, play)

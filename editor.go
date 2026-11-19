@@ -47,85 +47,68 @@ func uploadFrontendFiles(entries []fs.DirEntry, dirPath string, client *Client) 
 	return nil
 }
 
-func ScaffoldOffline(play Play) error {
-	if play.Title == "" {
-		return errors.New("Cannot upload play with empty title :(")
-	}
-
-	dirPath := path.Join("plays", play.Title)
-
-	err := os.MkdirAll(path.Join(dirPath, "media"), 0755)
-	if err != nil {
-		return err
-	}
-
-	entries, err := frontendFs.ReadDir("frontend")
-
-	err = uploadFrontendFiles(entries, dirPath, nil)
-	if err != nil {
-		return err
-	}
-
-	heroImage, err := os.ReadFile(play.HeroImage)
-	if err != nil {
-		return err
-	}
-
-	play.HeroImage = path.Join("media", path.Base(play.HeroImage))
-	err = os.WriteFile(path.Join(dirPath, play.HeroImage), heroImage, 0755)
-	if err != nil {
-		return err
-	}
-
-	content, err := json.Marshal(play)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path.Join(dirPath, "content.json"), content, 0755)
-
-}
-
 func Scaffold(client *Client, play Play) error {
+	//loc is true if we want to create the playbook locally
+	var loc = GlobalSettings.Data.LocalUpload
+	//Check if title is set
 	if play.Title == "" {
 		return errors.New("Cannot upload play with empty title :(")
 	}
 
 	dirPath := path.Join("plays", play.Title)
 
-	if client.sftp == nil {
-		client.dialog.Show()
-		return errors.New("Connect before uploading")
+	if !loc {
+		//Check if client is connected
+		if client.sftp == nil {
+			client.dialog.Show()
+			return errors.New("Connect before uploading")
+		}
 	}
 
-	err := client.sftp.MkdirAll(path.Join(dirPath, "media"))
+	var err error
+	//Create media folder
+	if loc {
+		err = os.MkdirAll(path.Join(dirPath, "media"), 0755)
+	} else {
+		err = client.sftp.MkdirAll(path.Join(dirPath, "media"))
+	}
 	if err != nil {
 		return err
 	}
 
+	//Read frontend files
 	entries, err := frontendFs.ReadDir("frontend")
-
 	err = uploadFrontendFiles(entries, dirPath, client)
 	if err != nil {
 		return err
 	}
-
+	//Read HeroImage
 	heroImage, err := os.ReadFile(play.HeroImage)
 	if err != nil {
 		return err
 	}
 
+	//Upload HeroImage
 	play.HeroImage = path.Join("media", path.Base(play.HeroImage))
-	err = client.Upload(heroImage, path.Join(dirPath, play.HeroImage))
+	if loc {
+		err = os.WriteFile(path.Join(dirPath, play.HeroImage), heroImage, 0755)
+	} else {
+		err = client.Upload(heroImage, path.Join(dirPath, play.HeroImage))
+	}
 	if err != nil {
 		return err
 	}
 
+	//save play as json file
 	content, err := json.Marshal(play)
 	if err != nil {
 		return err
 	}
-
-	return client.Upload(content, path.Join(dirPath, "content.json"))
+	if loc {
+		return os.WriteFile(path.Join(dirPath, "content.json"), content, 0755)
+	} else {
+		return client.Upload(content, path.Join(dirPath, "content.json"))
+	}
 }
 
 func createEditor(client *Client, play Play) *widget.Form {
@@ -200,11 +183,7 @@ func createEditor(client *Client, play Play) *widget.Form {
 		play.Content = content.Text
 
 		var err error
-		if GlobalSettings.Data.LocalUpload {
-			err = ScaffoldOffline(play)
-		} else {
-			err = Scaffold(client, play)
-		}
+		err = Scaffold(client, play)
 		if err != nil {
 			log.Println(err)
 		}

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"path"
+	"strconv"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
@@ -102,6 +104,39 @@ func (client *Client) createForm(window fyne.Window) *dialog.FormDialog {
 		{Text: "Port", Widget: portEntry},
 		{Text: "User", Widget: userEntry},
 		{Text: "Password", Widget: pwdEntry},
+	}
+
+	// error check for host, has to be smt and not spaces
+	hostEntry.Validator = func(value string) error {
+		if strings.TrimSpace(value) == "" {
+			return errors.New("Host is required")
+		}
+		return nil
+	}
+	// error check for port, a number between 1 and 65535
+	portEntry.Validator = func(value string) error {
+		port, err := strconv.Atoi(value)
+
+		if err != nil || port < 1 || port > 65535 {
+			return errors.New("Wrong port")
+		}
+		return nil
+	}
+
+	// error check user, has to be smt
+	userEntry.Validator = func(value string) error {
+		if strings.TrimSpace(value) == "" {
+			return errors.New("username is required")
+		}
+		return nil
+	}
+
+	// password error check, has to be smt
+	pwdEntry.Validator = func(value string) error {
+		if value == "" {
+			return errors.New("Password is required")
+		}
+		return nil
 	}
 
 	return dialog.NewForm("Connect to SFTP server", "Confirm", "Cancel", items, func(confirm bool) {

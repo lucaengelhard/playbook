@@ -9,22 +9,28 @@ import (
 	"path"
 )
 
+type Tuple[T any] struct {
+	first  T
+	second T
+}
 type Settings struct {
 	Generate    bool
 	LocalUpload bool
+	WindowSize  Tuple[float32]
 }
 
 var GlobalSettings = &Observable[Settings]{
 	Data: Settings{
 		Generate:    false,
 		LocalUpload: false,
+		WindowSize:  Tuple[float32]{800, 600},
 	},
 	Subscribers: []*func(Settings){},
 }
 
 func applyFlags() {
 	generateFlag := flag.Bool("gen", false, "Generate typescript types to ./frontend")
-	localUploadFlag := flag.Bool("localUpload", false, "Upload files to local dir instead of sftp server")
+	localUploadFlag := flag.Bool("localUpload", true, "Upload files to local dir instead of sftp server")
 	flag.Parse()
 
 	GlobalSettings.Update(func(s Settings) Settings {

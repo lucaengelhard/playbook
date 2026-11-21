@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 
 	"fyne.io/fyne/v2/widget"
 	"github.com/ncruces/zenity"
@@ -129,6 +130,7 @@ func Scaffold(client *Client, play Play) error {
 }
 
 func createEditor(client *Client, play Play) *widget.Form {
+	var form *widget.Form
 	localUploadCheckbox := widget.NewCheck("Stores directory locally", func(b bool) {
 		GlobalSettings.Update(func(s Settings) Settings {
 			s.LocalUpload = b
@@ -138,6 +140,18 @@ func createEditor(client *Client, play Play) *widget.Form {
 	localUploadCheckbox.Checked = GlobalSettings.Data.LocalUpload
 	titleEntry := widget.NewEntry()
 	titleEntry.Text = play.Title
+	titleEntry.Validator = func(value string) error {
+		title := strings.TrimSpace(value)
+
+		if title == "" {
+			return errors.New("Title is required")
+		}
+		if title == "." || title == ".." || strings.ContainsAny(title, "/\\") {
+			return errors.New("Invalid title")
+		}
+		return nil
+	}
+
 	heroImageButton := widget.NewButton("Select...", func() {
 		file, err := zenity.SelectFile(
 			zenity.FileFilters{
@@ -159,6 +173,7 @@ func createEditor(client *Client, play Play) *widget.Form {
 		}
 
 		play.HeroImage = file
+		form.Refresh()
 	})
 
 	content := widget.NewMultiLineEntry()
@@ -188,13 +203,25 @@ func createEditor(client *Client, play Play) *widget.Form {
 		play.Gallery = files
 	})
 
-	form := widget.NewForm(
+	form = widget.NewForm(
 		widget.NewFormItem("Local Upload", localUploadCheckbox),
 		widget.NewFormItem("Title", titleEntry),
 		widget.NewFormItem("Content", content),
 		widget.NewFormItem("Hero Image", heroImageButton),
 		widget.NewFormItem("Gallery", galleryButton),
 	)
+	// check if hero image exists
+	form.Validator = func() error {
+		if play.HeroImage == "" {
+			return errors.New("Hero image is required")
+		}
+		info, err := os.Stat(play.HeroImage)
+		if err != nil || !info.Mode().IsRegular() {
+			return errors.New("Invalid hero image file")
+		}
+		return nil
+	}
+
 	form.OnSubmit = func() {
 		play.Title = titleEntry.Text
 		play.Content = content.Text

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="de">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Digitales Programmheft – LTT</title>
+        <style>
+            * {
+                box-sizing: border-box;
+            }
+
+            /* Die Standardschriftgröße aus dem Browser beibehalten. */
+            html {
+                font-size: 100%;
+            }
+
+            body {
+                margin: 0;
+                background: #e9e7e3;
+                color: #252525;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 1.125rem;
+                line-height: 1.6;
+            }
+
+            main {
+                max-width: 37.5rem;
+                min-height: 100vh;
+                margin: 0 auto;
+                padding: 1.5rem 1.25rem;
+                background: #fffdf7;
+                overflow-wrap: anywhere;
+            }
+
+            h1,
+            h2 {
+                line-height: 1.25;
+            }
+
+            h1 {
+                margin: 1rem 0 1.5rem;
+                font-size: 2rem;
+            }
+
+            h2 {
+                margin-top: 1.75rem;
+                font-size: 1.5rem;
+            }
+
+            img {
+                display: block;
+                width: 100%;
+                height: auto;
+                margin: 1.5rem 0;
+            }
+
+            figure {
+                margin: 1.5rem 0;
+            }
+
+            figure img {
+                margin: 0 0 0.5rem;
+            }
+
+            figcaption {
+                font-size: 1rem;
+                line-height: 1.6;
+                color: #514741;
+            }
+
+            button {
+                width: 100%;
+                min-height: 3.25rem;
+                padding: 0.75rem 1rem;
+                border: 1px solid #792b30;
+                border-radius: 0.25rem;
+                background: #792b30;
+                color: white;
+                font: inherit;
+                text-align: left;
+                cursor: pointer;
+            }
+
+            button:hover {
+                background: #602126;
+            }
+
+            button:focus-visible {
+                outline: 3px solid #185da8;
+                outline-offset: 3px;
+            }
+
+            .zurueck {
+                margin-top: 1.75rem;
+                background: transparent;
+                color: #792b30;
+            }
+
+            .zurueck:hover {
+                background: #f0e4e3;
+            }
+
+            .menue-liste {
+                display: grid;
+                gap: 0.75rem;
+            }
+
+            /* Die Ansichten teilen sich eine Seite und werden abwechselnd eingeblendet. */
+            [hidden] {
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <p id="status" role="status">Programmheft wird geladen …</p>
+
+            <section id="startseite" hidden>
+                <p>Landestheater Tübingen</p>
+                <h1 id="stuecktitel" tabindex="-1"></h1>
+                <p>Digitales Programmheft</p>
+                <div id="titelbild"></div>
+                <button id="oeffnen" type="button">Programmheft öffnen</button>
+            </section>
+
+            <section id="menue" hidden>
+                <h1 tabindex="-1">Inhalt</h1>
+                <nav
+                    id="menue-liste"
+                    class="menue-liste"
+                    aria-label="Kapitel"
+                ></nav>
+                <button id="zur-startseite" class="zurueck" type="button">
+                    Zurück zur Startseite
+                </button>
+            </section>
+
+            <section id="inhaltsseite" hidden>
+                <h1 id="kapiteltitel" tabindex="-1"></h1>
+                <div id="kapitelinhalt"></div>
+                <button id="zum-menue" class="zurueck" type="button">
+                    Zurück zum Inhalt
+                </button>
+            </section>
+        </main>
+
+        <script type="module" src="./programmheft.js"></script>
+    </body>
+</html>

@@ -28,8 +28,8 @@ func main() {
 	a := app.New()
 	w := a.NewWindow("Hello World")
 
-	var width float32 = 1000
-	var height float32 = 600
+	var width float32 = GlobalSettings.Data.WindowSize.first
+	var height float32 = GlobalSettings.Data.WindowSize.second
 	w.Resize(fyne.NewSize(width, height))
 
 	client := NewClient(w)

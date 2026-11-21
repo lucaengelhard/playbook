@@ -4,8 +4,9 @@
     "module": "ES2020",
     "lib": ["ES2020", "DOM"],
     "strict": true,
+    "noEmit": true,
     "noEmitOnError": true,
     "forceConsistentCasingInFileNames": true
   },
-  "files": ["prototype2.ts"]
+  "files": ["src/programmheft.ts"]
 }

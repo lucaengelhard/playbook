@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 
+	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	"github.com/ncruces/zenity"
 )
@@ -131,6 +132,7 @@ func Scaffold(client *Client, play Play) error {
 
 func createEditor(client *Client, play Play) *widget.Form {
 	var form *widget.Form
+
 	localUploadCheckbox := widget.NewCheck("Stores directory locally", func(b bool) {
 		GlobalSettings.Update(func(s Settings) Settings {
 			s.LocalUpload = b
@@ -152,56 +154,84 @@ func createEditor(client *Client, play Play) *widget.Form {
 		return nil
 	}
 
-	heroImageButton := widget.NewButton("Select...", func() {
-		file, err := zenity.SelectFile(
-			zenity.FileFilters{
-				{
-					Name:     "Images",
-					Patterns: []string{"*.png", "*.jpg"},
-					CaseFold: true,
-				},
-				{
-					Name:     "All Files",
-					Patterns: []string{"*"},
-					CaseFold: true,
-				},
-			})
+	heroImageButton := widget.NewButton("Select...", nil)
+	galleryButton := widget.NewButton("Select Images...", nil)
 
-		if err != nil {
-			// TODO
-			return
+	buttons := []*widget.Button{heroImageButton, galleryButton}
+
+	disableButtons := func() {
+		for _, b := range buttons {
+			b.Disable()
 		}
+	}
+	enableButtons := func() {
+		for _, b := range buttons {
+			b.Enable()
+		}
+	}
 
-		play.HeroImage = file
-		form.Refresh()
-	})
+	heroImageButton.OnTapped = func() {
+		{
+			disableButtons()
+			go func() {
+				defer fyne.Do(enableButtons)
+
+				file, err := zenity.SelectFile(
+					zenity.FileFilters{
+						{
+							Name:     "Images",
+							Patterns: []string{"*.png", "*.jpg"},
+							CaseFold: true,
+						},
+						{
+							Name:     "All Files",
+							Patterns: []string{"*"},
+							CaseFold: true,
+						},
+					})
+
+				if err != nil {
+					// TODO
+					return
+				}
+
+				play.HeroImage = file
+				form.Refresh()
+			}()
+		}
+	}
+
+	galleryButton.OnTapped = func() {
+		disableButtons()
+
+		go func() {
+			defer fyne.Do(enableButtons)
+			files, err := zenity.SelectFileMultiple(
+				zenity.FileFilters{
+					{
+						Name:     "Images",
+						Patterns: []string{"*.png", "*.jpg"},
+						CaseFold: true,
+					},
+					{
+						Name:     "All Files",
+						Patterns: []string{"*"},
+						CaseFold: true,
+					},
+				},
+			)
+
+			if err != nil {
+				// TODO
+				return
+			}
+
+			play.Gallery = files
+		}()
+	}
 
 	content := widget.NewMultiLineEntry()
 	content.Text = play.Content
-
-	galleryButton := widget.NewButton("Select Images...", func() {
-		files, err := zenity.SelectFileMultiple(
-			zenity.FileFilters{
-				{
-					Name:     "Images",
-					Patterns: []string{"*.png", "*.jpg"},
-					CaseFold: true,
-				},
-				{
-					Name:     "All Files",
-					Patterns: []string{"*"},
-					CaseFold: true,
-				},
-			},
-		)
-
-		if err != nil {
-			// TODO
-			return
-		}
-
-		play.Gallery = files
-	})
 
 	form = widget.NewForm(
 		widget.NewFormItem("Local Upload", localUploadCheckbox),

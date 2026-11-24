@@ -196,7 +196,7 @@ func createEditor(client *Client, play Play) *widget.Form {
 				}
 
 				play.HeroImage = file
-				form.Refresh()
+				fyne.Do(form.Refresh)
 			}()
 		}
 	}

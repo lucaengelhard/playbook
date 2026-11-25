@@ -32,9 +32,6 @@ func main() {
 	var height float32 = GlobalSettings.Data.WindowSize.second
 	w.Resize(fyne.NewSize(width, height))
 
-	client := NewClient(w)
-	defer client.Close()
-
 	var nav *container.Navigation
 
 	playList := container.NewVBox()
@@ -43,27 +40,16 @@ func main() {
 		playList.Objects = []fyne.CanvasObject{}
 		for _, play := range p {
 			playList.Objects = append(playList.Objects, widget.NewButton(play.Title, func() {
-				nav.PushWithTitle(createEditor(client, play), play.Title)
+				nav.PushWithTitle(createEditor(play), play.Title)
 			}))
 		}
 	})
 
 	sidebar := container.NewVScroll(
 		container.NewVBox(
-			widget.NewButton("Connect", func() {
-				client.dialog.Show()
-			}),
-			widget.NewButton("Update", func() {
-				err := update(client)
-				if err != nil {
-					log.Println(err)
-					return
-				}
-			}),
-			widget.NewSeparator(),
 			playList,
 			widget.NewButton("New", func() {
-				nav.PushWithTitle(createEditor(client, Play{}), "New Play")
+				nav.PushWithTitle(createEditor(Play{}), "New Play")
 			}),
 		))
 
@@ -73,7 +59,7 @@ func main() {
 	split := container.NewHSplit(sidebar, nav)
 	split.SetOffset(0.2)
 
-	err := update(client)
+	err := update()
 	if err != nil {
 		log.Println(err)
 	}

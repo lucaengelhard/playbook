@@ -4,52 +4,33 @@ import (
 	"embed"
 	"encoding/json/v2"
 	"errors"
-	"io/fs"
 	"log"
 	"os"
 	"path"
 	"strings"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 	"github.com/ncruces/zenity"
 )
 
 //go:embed all:frontend
 var frontendFs embed.FS
+var contents []Content
 
 type Play struct {
 	Title     string
 	HeroImage string
-	Content   string
+	Contents  []Content
 	Gallery   []string `json:"Gallery,omitempty"`
 }
-
-func uploadFrontendFiles(entries []fs.DirEntry, dirPath string, client *Client) error {
-	for _, entry := range entries {
-		if entry.IsDir() {
-			// TODO
-			continue
-		}
-		filePath := path.Join("frontend", entry.Name())
-		file, err := os.ReadFile(filePath)
-		if err != nil {
-			log.Println("Error while reading template file", err)
-			continue
-		}
-		if GlobalSettings.Data.LocalUpload {
-			err = os.WriteFile(path.Join(dirPath, entry.Name()), file, 0755)
-		} else {
-			err = client.Upload(file, path.Join(dirPath, entry.Name()))
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+type Content struct {
+	Type    string
+	Content string
 }
 
-func ScaffoldOffline(play Play) error {
+func Scaffold(play Play) error {
 	if play.Title == "" {
 		return errors.New("Cannot upload play with empty title :(")
 	}
@@ -62,8 +43,20 @@ func ScaffoldOffline(play Play) error {
 	}
 
 	entries, err := frontendFs.ReadDir("frontend")
+	for _, entry := range entries {
+		if entry.IsDir() {
+			// TODO
+			continue
+		}
+		filePath := path.Join("frontend", entry.Name())
+		file, err := os.ReadFile(filePath)
+		if err != nil {
+			log.Println("Error while reading template file", err)
+			continue
+		}
+		err = os.WriteFile(path.Join(dirPath, entry.Name()), file, 0755)
 
-	err = uploadFrontendFiles(entries, dirPath, nil)
+	}
 	if err != nil {
 		return err
 	}
@@ -79,6 +72,21 @@ func ScaffoldOffline(play Play) error {
 		return err
 	}
 
+	for _, c := range play.Contents {
+		if c.Type == "Picture" {
+			v, err := os.ReadFile(c.Content)
+			if err != nil {
+				return err
+			}
+
+			c.Content = path.Join("media", path.Base(c.Content))
+			err = os.WriteFile(path.Join(dirPath, c.Content), v, 0755)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	content, err := json.Marshal(play)
 	if err != nil {
 		return err
@@ -87,59 +95,11 @@ func ScaffoldOffline(play Play) error {
 
 }
 
-func Scaffold(client *Client, play Play) error {
-	if play.Title == "" {
-		return errors.New("Cannot upload play with empty title :(")
-	}
-
-	dirPath := path.Join("plays", play.Title)
-
-	if client.sftp == nil {
-		client.dialog.Show()
-		return errors.New("Connect before uploading")
-	}
-
-	err := client.sftp.MkdirAll(path.Join(dirPath, "media"))
-	if err != nil {
-		return err
-	}
-
-	entries, err := frontendFs.ReadDir("frontend")
-
-	err = uploadFrontendFiles(entries, dirPath, client)
-	if err != nil {
-		return err
-	}
-
-	heroImage, err := os.ReadFile(play.HeroImage)
-	if err != nil {
-		return err
-	}
-
-	play.HeroImage = path.Join("media", path.Base(play.HeroImage))
-	err = client.Upload(heroImage, path.Join(dirPath, play.HeroImage))
-	if err != nil {
-		return err
-	}
-
-	content, err := json.Marshal(play)
-	if err != nil {
-		return err
-	}
-
-	return client.Upload(content, path.Join(dirPath, "content.json"))
-}
-
-func createEditor(client *Client, play Play) *widget.Form {
+func createEditor(play Play) *widget.Form {
 	var form *widget.Form
+	var entries []*widget.Entry
+	//dirPath := path.Join("plays", play.Title)
 
-	localUploadCheckbox := widget.NewCheck("Stores directory locally", func(b bool) {
-		GlobalSettings.Update(func(s Settings) Settings {
-			s.LocalUpload = b
-			return s
-		})
-	})
-	localUploadCheckbox.Checked = GlobalSettings.Data.LocalUpload
 	titleEntry := widget.NewEntry()
 	titleEntry.Text = play.Title
 	titleEntry.Validator = func(value string) error {
@@ -156,9 +116,10 @@ func createEditor(client *Client, play Play) *widget.Form {
 
 	heroImageButton := widget.NewButton("Select...", nil)
 	galleryButton := widget.NewButton("Select Images...", nil)
+	newTextButton := widget.NewButton("Content", nil)
+	newPictureButton := widget.NewButton("Image", nil)
 
-	buttons := []*widget.Button{heroImageButton, galleryButton}
-
+	buttons := []*widget.Button{heroImageButton, galleryButton, newTextButton, newPictureButton}
 	disableButtons := func() {
 		for _, b := range buttons {
 			b.Disable()
@@ -171,34 +132,65 @@ func createEditor(client *Client, play Play) *widget.Form {
 	}
 
 	heroImageButton.OnTapped = func() {
-		{
-			disableButtons()
-			go func() {
-				defer fyne.Do(enableButtons)
 
-				file, err := zenity.SelectFile(
-					zenity.FileFilters{
-						{
-							Name:     "Images",
-							Patterns: []string{"*.png", "*.jpg"},
-							CaseFold: true,
-						},
-						{
-							Name:     "All Files",
-							Patterns: []string{"*"},
-							CaseFold: true,
-						},
-					})
+		disableButtons()
+		go func() {
+			defer fyne.Do(enableButtons)
 
-				if err != nil {
-					// TODO
-					return
-				}
+			file, err := zenity.SelectFile(
+				zenity.FileFilters{
+					{
+						Name:     "Images",
+						Patterns: []string{"*.png", "*.jpg"},
+						CaseFold: true,
+					},
+					{
+						Name:     "All Files",
+						Patterns: []string{"*"},
+						CaseFold: true,
+					},
+				})
 
-				play.HeroImage = file
-				fyne.Do(form.Refresh)
-			}()
-		}
+			if err != nil {
+				// TODO
+				return
+			}
+
+			play.HeroImage = file
+			fyne.Do(form.Refresh)
+		}()
+
+	}
+
+	pictureButtonfunc := func() {
+
+		disableButtons()
+		go func() {
+			defer fyne.Do(enableButtons)
+
+			file, err := zenity.SelectFile(
+				zenity.FileFilters{
+					{
+						Name:     "Images",
+						Patterns: []string{"*.png", "*.jpg"},
+						CaseFold: true,
+					},
+					{
+						Name:     "All Files",
+						Patterns: []string{"*"},
+						CaseFold: true,
+					},
+				})
+
+			if err != nil {
+				// TODO
+				return
+			}
+
+			contents = append(contents, Content{"Picture", file})
+			fyne.Do(form.Refresh)
+		}()
+
 	}
 
 	galleryButton.OnTapped = func() {
@@ -230,16 +222,41 @@ func createEditor(client *Client, play Play) *widget.Form {
 		}()
 	}
 
-	content := widget.NewMultiLineEntry()
-	content.Text = play.Content
-
+	newTextButton.OnTapped = func() {
+		var c = widget.NewMultiLineEntry()
+		entries = append(entries, c)
+		form.Append("Content", c)
+		form.Refresh()
+	}
+	newPictureButton.OnTapped = func() {
+		var b = widget.NewButton("Image", pictureButtonfunc)
+		buttons = append(buttons, b)
+		form.Append("Picture", b)
+		form.Refresh()
+	}
+	b := container.NewHBox(
+		newTextButton,
+		newPictureButton,
+	)
 	form = widget.NewForm(
-		widget.NewFormItem("Local Upload", localUploadCheckbox),
+		widget.NewFormItem("New", b),
 		widget.NewFormItem("Title", titleEntry),
-		widget.NewFormItem("Content", content),
 		widget.NewFormItem("Hero Image", heroImageButton),
 		widget.NewFormItem("Gallery", galleryButton),
 	)
+
+	for _, c := range play.Contents {
+		if c.Type == "Text" {
+			var v = widget.NewMultiLineEntry()
+			v.Text = c.Content
+			form.Append("Content", v)
+		}
+		if c.Type == "Picture" {
+			var b = widget.NewButton("Picture", pictureButtonfunc)
+			form.Append("Picture", b)
+		}
+	}
+
 	// check if hero image exists
 	form.Validator = func() error {
 		if play.HeroImage == "" {
@@ -253,20 +270,24 @@ func createEditor(client *Client, play Play) *widget.Form {
 	}
 
 	form.OnSubmit = func() {
+
 		play.Title = titleEntry.Text
-		play.Content = content.Text
+		//play.Contents = content.Text
+
+		for _, e := range entries {
+			contents = append(contents, Content{"Text", e.Text})
+		}
+		for _, c := range contents {
+			play.Contents = append(play.Contents, c)
+		}
 
 		var err error
-		if GlobalSettings.Data.LocalUpload {
-			err = ScaffoldOffline(play)
-		} else {
-			err = Scaffold(client, play)
-		}
+		err = Scaffold(play)
+
 		if err != nil {
 			log.Println(err)
 		}
-
-		update(client)
+		update()
 		// TODO
 		// Clear fields
 		// reset play struct

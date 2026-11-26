@@ -97,21 +97,8 @@ func Scaffold(play Play) error {
 func createEditor(play Play) *widget.Form {
 	var form *widget.Form
 	var entries []*widget.Entry
-	//dirPath := path.Join("plays", play.Title)
 
-	titleEntry := widget.NewEntry()
-	titleEntry.Text = play.Title
-	titleEntry.Validator = func(value string) error {
-		title := strings.TrimSpace(value)
-
-		if title == "" {
-			return errors.New("Title is required")
-		}
-		if title == "." || title == ".." || strings.ContainsAny(title, "/\\") {
-			return errors.New("Invalid title")
-		}
-		return nil
-	}
+	titleEntry := createTitleEntry(play)
 
 	heroImageButton := widget.NewButton("Select...", nil)
 	galleryButton := widget.NewButton("Select Images...", nil)
@@ -130,95 +117,55 @@ func createEditor(play Play) *widget.Form {
 		}
 	}
 
-	heroImageButton.OnTapped = func() {
+	imageTypeFilter := zenity.FileFilters{
+		{
+			Name:     "Images",
+			Patterns: []string{"*.png", "*.jpg"},
+			CaseFold: true,
+		},
+		{
+			Name:     "All Files",
+			Patterns: []string{"*"},
+			CaseFold: true,
+		},
+	}
 
+	imageSelector := func(i int) {
+		// i = 0: HeroImage, i = 1: image in text, i = 3 gallery
 		disableButtons()
+
 		go func() {
 			defer fyne.Do(enableButtons)
-
-			file, err := zenity.SelectFile(
-				zenity.FileFilters{
-					{
-						Name:     "Images",
-						Patterns: []string{"*.png", "*.jpg"},
-						CaseFold: true,
-					},
-					{
-						Name:     "All Files",
-						Patterns: []string{"*"},
-						CaseFold: true,
-					},
-				})
-
+			var err error
+			var file string
+			var files []string
+			if i == 2 {
+				files, err = zenity.SelectFileMultiple(imageTypeFilter)
+			} else {
+				file, err = zenity.SelectFile(imageTypeFilter)
+			}
 			if err != nil {
 				// TODO
 				return
 			}
 
-			play.HeroImage = file
+			if i == 0 {
+				play.HeroImage = file
+			}
+			if i == 1 {
+				contents = append(contents, &Content{"Picture", file})
+			}
+			if i == 2 {
+				play.Gallery = files
+			}
 			fyne.Do(form.Refresh)
 		}()
 
 	}
 
-	pictureButtonfunc := func() {
-
-		disableButtons()
-		go func() {
-			defer fyne.Do(enableButtons)
-
-			file, err := zenity.SelectFile(
-				zenity.FileFilters{
-					{
-						Name:     "Images",
-						Patterns: []string{"*.png", "*.jpg"},
-						CaseFold: true,
-					},
-					{
-						Name:     "All Files",
-						Patterns: []string{"*"},
-						CaseFold: true,
-					},
-				})
-
-			if err != nil {
-				// TODO
-				return
-			}
-
-			contents = append(contents, &Content{"Picture", file})
-			fyne.Do(form.Refresh)
-		}()
-
-	}
-
-	galleryButton.OnTapped = func() {
-		disableButtons()
-
-		go func() {
-			defer fyne.Do(enableButtons)
-			files, err := zenity.SelectFileMultiple(
-				zenity.FileFilters{
-					{
-						Name:     "Images",
-						Patterns: []string{"*.png", "*.jpg"},
-						CaseFold: true,
-					},
-					{
-						Name:     "All Files",
-						Patterns: []string{"*"},
-						CaseFold: true,
-					},
-				},
-			)
-
-			if err != nil {
-				// TODO
-				return
-			}
-			play.Gallery = files
-		}()
-	}
+	heroImageButton.OnTapped = func() { imageSelector(0) }
+	pictureButtonfunc := func() { imageSelector(1) }
+	galleryButton.OnTapped = func() { imageSelector(2) }
 
 	newTextButton.OnTapped = func() {
 		var c = widget.NewMultiLineEntry()
@@ -289,4 +236,21 @@ func createEditor(play Play) *widget.Form {
 		// Show Success Dialog
 	}
 	return form
+}
+
+func createTitleEntry(play Play) *widget.Entry {
+	titleEntry := widget.NewEntry()
+	titleEntry.Text = play.Title
+	titleEntry.Validator = func(value string) error {
+		title := strings.TrimSpace(value)
+
+		if title == "" {
+			return errors.New("Title is required")
+		}
+		if title == "." || title == ".." || strings.ContainsAny(title, "/\\") {
+			return errors.New("Invalid title")
+		}
+		return nil
+	}
+	return titleEntry
 }

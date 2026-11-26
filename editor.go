@@ -17,12 +17,12 @@ import (
 
 //go:embed all:frontend
 var frontendFs embed.FS
-var contents []Content
+var contents []*Content
 
 type Play struct {
 	Title     string
 	HeroImage string
-	Contents  []Content
+	Contents  []*Content
 	Gallery   []string `json:"Gallery,omitempty"`
 }
 type Content struct {
@@ -78,7 +78,6 @@ func Scaffold(play Play) error {
 			if err != nil {
 				return err
 			}
-
 			c.Content = path.Join("media", path.Base(c.Content))
 			err = os.WriteFile(path.Join(dirPath, c.Content), v, 0755)
 			if err != nil {
@@ -187,7 +186,7 @@ func createEditor(play Play) *widget.Form {
 				return
 			}
 
-			contents = append(contents, Content{"Picture", file})
+			contents = append(contents, &Content{"Picture", file})
 			fyne.Do(form.Refresh)
 		}()
 
@@ -217,7 +216,6 @@ func createEditor(play Play) *widget.Form {
 				// TODO
 				return
 			}
-
 			play.Gallery = files
 		}()
 	}
@@ -272,14 +270,10 @@ func createEditor(play Play) *widget.Form {
 	form.OnSubmit = func() {
 
 		play.Title = titleEntry.Text
-		//play.Contents = content.Text
-
 		for _, e := range entries {
-			contents = append(contents, Content{"Text", e.Text})
+			contents = append(contents, &Content{"Text", e.Text})
 		}
-		for _, c := range contents {
-			play.Contents = append(play.Contents, c)
-		}
+		play.Contents = contents
 
 		var err error
 		err = Scaffold(play)
@@ -294,6 +288,5 @@ func createEditor(play Play) *widget.Form {
 		// Show Progress dialog (https://docs.fyne.io/api/v2/dialog/progressdialog/)
 		// Show Success Dialog
 	}
-
 	return form
 }

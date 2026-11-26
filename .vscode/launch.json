@@ -2,16 +2,15 @@
 // Press F5 to start
 
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Playbook - Local",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "program": "${workspaceFolder}",
-            "cwd": "${workspaceFolder}",
-            "args": ["-localUpload"]
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Playbook",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}",
+    },
+  ],
 }

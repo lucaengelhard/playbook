@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"uuid"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
@@ -71,10 +72,30 @@ func Scaffold(play Play) error {
 		return err
 	}
 
-	play.HeroImage = path.Join("media", path.Base(play.HeroImage))
-	err = os.WriteFile(path.Join(dirPath, play.HeroImage), heroImage, 0755)
+	heroImagePath := NewMediaPath(play.HeroImage)
+	play.HeroImage = heroImagePath
+	err = os.WriteFile(path.Join(dirPath, heroImagePath), heroImage, 0755)
 	if err != nil {
 		return err
+	}
+
+	if len(play.Gallery) > 0 {
+		for i, fsPath := range play.Gallery {
+			image, err := os.ReadFile(fsPath)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			mediaPath := NewMediaPath(fsPath)
+			err = os.WriteFile(path.Join(dirPath, mediaPath), image, 0755)
+
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			play.Gallery[i] = mediaPath
+		}
 	}
 
 	content, err := json.Marshal(play)
@@ -223,4 +244,9 @@ func createEditor(play Play, isNewPlay bool) *widget.Form {
 	}
 
 	return form
+}
+
+func NewMediaPath(p string) string {
+	name := path.Base(p)
+	return path.Join("media", uuid.New().String()+"_"+name)
 }

@@ -102,28 +102,22 @@ func createEditor(play Play, isNewPlay bool) *widget.Form {
 		return nil
 	}
 
-	heroImageButton := widget.NewButton("Select...", nil)
-	galleryButton := widget.NewButton("Select Images...", nil)
-
-	buttons := []*widget.Button{heroImageButton, galleryButton}
-
-	disableButtons := func() {
-		for _, b := range buttons {
-			b.Disable()
-		}
+	heroImageText := "Select..."
+	if play.HeroImage != "" {
+		heroImageText = play.HeroImage
 	}
-	enableButtons := func() {
-		for _, b := range buttons {
-			b.Enable()
-		}
+	heroImageButton := widget.NewButton(heroImageText, nil)
+
+	galleryButtonText := "Select Images..."
+	if len(play.Gallery) > 0 {
+		galleryButtonText = strings.Join(play.Gallery, "\n")
 	}
+
+	galleryButton := widget.NewButton(galleryButtonText, nil)
 
 	heroImageButton.OnTapped = func() {
 		{
-			disableButtons()
 			go func() {
-				defer fyne.Do(enableButtons)
-
 				file, err := zenity.SelectFile(
 					zenity.FileFilters{
 						{
@@ -144,16 +138,16 @@ func createEditor(play Play, isNewPlay bool) *widget.Form {
 				}
 
 				play.HeroImage = file
+				fyne.Do(func() {
+					heroImageButton.Text = play.HeroImage
+				})
 				fyne.Do(form.Refresh)
 			}()
 		}
 	}
 
 	galleryButton.OnTapped = func() {
-		disableButtons()
-
 		go func() {
-			defer fyne.Do(enableButtons)
 			files, err := zenity.SelectFileMultiple(
 				zenity.FileFilters{
 					{
@@ -175,6 +169,10 @@ func createEditor(play Play, isNewPlay bool) *widget.Form {
 			}
 
 			play.Gallery = files
+			fyne.Do(func() {
+				galleryButton.Text = strings.Join(play.Gallery, "\n")
+			})
+			fyne.Do(form.Refresh)
 		}()
 	}
 

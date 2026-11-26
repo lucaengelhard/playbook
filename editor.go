@@ -15,8 +15,9 @@ import (
 	"github.com/ncruces/zenity"
 )
 
-//go:embed all:frontend
+//go:embed all:frontend/dist
 var frontendFs embed.FS
+var frontendPath = path.Join("frontend", "dist")
 
 type Play struct {
 	Title     string
@@ -25,23 +26,21 @@ type Play struct {
 	Gallery   []string `json:"Gallery,omitempty"`
 }
 
-func uploadFrontendFiles(entries []fs.DirEntry, dirPath string, client *Client) error {
+func uploadFrontendFiles(entries []fs.DirEntry, dirPath string) error {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			// TODO
 			continue
 		}
-		filePath := path.Join("frontend", entry.Name())
+		filePath := path.Join(frontendPath, entry.Name())
 		file, err := os.ReadFile(filePath)
 		if err != nil {
 			log.Println("Error while reading template file", err)
 			continue
 		}
-		if GlobalSettings.Data.LocalUpload {
-			err = os.WriteFile(path.Join(dirPath, entry.Name()), file, 0755)
-		} else {
-			err = client.Upload(file, path.Join(dirPath, entry.Name()))
-		}
+
+		err = os.WriteFile(path.Join(dirPath, entry.Name()), file, 0755)
+
 		if err != nil {
 			return err
 		}
@@ -49,7 +48,7 @@ func uploadFrontendFiles(entries []fs.DirEntry, dirPath string, client *Client) 
 	return nil
 }
 
-func ScaffoldOffline(play Play) error {
+func Scaffold(play Play) error {
 	if play.Title == "" {
 		return errors.New("Cannot upload play with empty title :(")
 	}
@@ -60,10 +59,9 @@ func ScaffoldOffline(play Play) error {
 	if err != nil {
 		return err
 	}
+	entries, err := frontendFs.ReadDir(frontendPath)
 
-	entries, err := frontendFs.ReadDir("frontend")
-
-	err = uploadFrontendFiles(entries, dirPath, nil)
+	err = uploadFrontendFiles(entries, dirPath)
 	if err != nil {
 		return err
 	}
@@ -87,59 +85,9 @@ func ScaffoldOffline(play Play) error {
 
 }
 
-func Scaffold(client *Client, play Play) error {
-	if play.Title == "" {
-		return errors.New("Cannot upload play with empty title :(")
-	}
-
-	dirPath := path.Join("plays", play.Title)
-
-	if client.sftp == nil {
-		client.dialog.Show()
-		return errors.New("Connect before uploading")
-	}
-
-	err := client.sftp.MkdirAll(path.Join(dirPath, "media"))
-	if err != nil {
-		return err
-	}
-
-	entries, err := frontendFs.ReadDir("frontend")
-
-	err = uploadFrontendFiles(entries, dirPath, client)
-	if err != nil {
-		return err
-	}
-
-	heroImage, err := os.ReadFile(play.HeroImage)
-	if err != nil {
-		return err
-	}
-
-	play.HeroImage = path.Join("media", path.Base(play.HeroImage))
-	err = client.Upload(heroImage, path.Join(dirPath, play.HeroImage))
-	if err != nil {
-		return err
-	}
-
-	content, err := json.Marshal(play)
-	if err != nil {
-		return err
-	}
-
-	return client.Upload(content, path.Join(dirPath, "content.json"))
-}
-
-func createEditor(client *Client, play Play) *widget.Form {
+func createEditor(play Play, isNewPlay bool) *widget.Form {
 	var form *widget.Form
 
-	localUploadCheckbox := widget.NewCheck("Stores directory locally", func(b bool) {
-		GlobalSettings.Update(func(s Settings) Settings {
-			s.LocalUpload = b
-			return s
-		})
-	})
-	localUploadCheckbox.Checked = GlobalSettings.Data.LocalUpload
 	titleEntry := widget.NewEntry()
 	titleEntry.Text = play.Title
 	titleEntry.Validator = func(value string) error {
@@ -234,7 +182,6 @@ func createEditor(client *Client, play Play) *widget.Form {
 	content.Text = play.Content
 
 	form = widget.NewForm(
-		widget.NewFormItem("Local Upload", localUploadCheckbox),
 		widget.NewFormItem("Title", titleEntry),
 		widget.NewFormItem("Content", content),
 		widget.NewFormItem("Hero Image", heroImageButton),
@@ -245,7 +192,15 @@ func createEditor(client *Client, play Play) *widget.Form {
 		if play.HeroImage == "" {
 			return errors.New("Hero image is required")
 		}
-		info, err := os.Stat(play.HeroImage)
+
+		var heroImagePath string
+		if isNewPlay {
+			heroImagePath = play.HeroImage
+		} else {
+			heroImagePath = path.Join("plays", play.Title, play.HeroImage)
+		}
+
+		info, err := os.Stat(heroImagePath)
 		if err != nil || !info.Mode().IsRegular() {
 			return errors.New("Invalid hero image file")
 		}
@@ -256,17 +211,12 @@ func createEditor(client *Client, play Play) *widget.Form {
 		play.Title = titleEntry.Text
 		play.Content = content.Text
 
-		var err error
-		if GlobalSettings.Data.LocalUpload {
-			err = ScaffoldOffline(play)
-		} else {
-			err = Scaffold(client, play)
-		}
+		err := Scaffold(play)
 		if err != nil {
 			log.Println(err)
 		}
 
-		update(client)
+		update()
 		// TODO
 		// Clear fields
 		// reset play struct

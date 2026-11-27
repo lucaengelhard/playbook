@@ -98,6 +98,7 @@ func createEditor(play *Play) *widget.Form {
 	var form *widget.Form
 	var entries []*widget.Entry
 
+	//Create all standard widgets
 	titleEntry := createTitleEntry(*play)
 
 	heroImageButton := widget.NewButton("Select...", nil)
@@ -105,8 +106,11 @@ func createEditor(play *Play) *widget.Form {
 	newTextButton := widget.NewButton("Content", nil)
 	newPictureButton := widget.NewButton("Image", nil)
 
+	//TODO
+	//create a list with all the buttons in the form
 	buttons := []*widget.Button{heroImageButton, galleryButton, newTextButton, newPictureButton}
 
+	//Implementation of the button functions
 	heroImageButton.OnTapped = func() { imageSelector(0, buttons, play, form) }
 	pictureButtonfunc := func() { imageSelector(1, buttons, play, form) }
 	galleryButton.OnTapped = func() { imageSelector(2, buttons, play, form) }
@@ -123,6 +127,8 @@ func createEditor(play *Play) *widget.Form {
 		form.Append("Picture", b)
 		form.Refresh()
 	}
+
+	//Put all items on the screen
 	b := container.NewHBox(
 		newTextButton,
 		newPictureButton,
@@ -133,7 +139,6 @@ func createEditor(play *Play) *widget.Form {
 		widget.NewFormItem("Hero Image", heroImageButton),
 		widget.NewFormItem("Gallery", galleryButton),
 	)
-
 	for _, c := range play.Contents {
 		if c.Type == "Text" {
 			var v = widget.NewMultiLineEntry()
@@ -145,6 +150,8 @@ func createEditor(play *Play) *widget.Form {
 			form.Append("Picture", b)
 		}
 	}
+	//Update the array with the new buttons
+	buttons = GetAllButtons(form)
 
 	// check if hero image exists
 	form.Validator = func() error {
@@ -166,8 +173,7 @@ func createEditor(play *Play) *widget.Form {
 		}
 		play.Contents = contents
 
-		var err error
-		err = Scaffold(play)
+		err := Scaffold(play)
 
 		if err != nil {
 			log.Println(err)
@@ -254,4 +260,27 @@ func imageSelector(i int, buttons []*widget.Button, play *Play, form *widget.For
 		}
 		fyne.Do(form.Refresh)
 	}()
+}
+
+func GetAllButtons(form *widget.Form) []*widget.Button {
+	var buttons []*widget.Button
+	var traverse func(obj fyne.CanvasObject)
+
+	traverse = func(obj fyne.CanvasObject) {
+		if button, ok := obj.(*widget.Button); ok {
+			buttons = append(buttons, button)
+		}
+		if container, ok := obj.(*fyne.Container); ok {
+			for _, child := range container.Objects {
+				traverse(child)
+			}
+		}
+	}
+
+	// Traverse form fields
+	for _, item := range form.Items {
+		traverse(item.Widget)
+	}
+
+	return buttons
 }

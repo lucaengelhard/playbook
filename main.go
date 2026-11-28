@@ -40,7 +40,7 @@ func main() {
 		playList.Objects = []fyne.CanvasObject{}
 		for _, play := range p {
 			playList.Objects = append(playList.Objects, widget.NewButton(play.Title, func() {
-				nav.PushWithTitle(createEditor(play, false), play.Title)
+				nav.PushWithTitle(createEditor(&play, false), play.Title)
 			}))
 		}
 	})
@@ -57,7 +57,7 @@ func main() {
 			widget.NewSeparator(),
 			playList,
 			widget.NewButton("New", func() {
-				nav.PushWithTitle(createEditor(Play{}, true), "New Play")
+				nav.PushWithTitle(createEditor(&Play{}, true), "New Play")
 			}),
 		))
 

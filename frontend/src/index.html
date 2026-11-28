@@ -9,16 +9,16 @@
                 box-sizing: border-box;
             }
 
-            /* Die Standardschriftgröße aus dem Browser beibehalten. */
+            /* schriftgröße vom browser lassen */
             html {
                 font-size: 100%;
             }
 
             body {
                 margin: 0;
-                background: #e9e7e3;
-                color: #252525;
-                font-family: Arial, Helvetica, sans-serif;
+                background: #2b0e17;
+                color: #fff7f2;
+                font-family: Georgia, "Times New Roman", serif;
                 font-size: 1.125rem;
                 line-height: 1.6;
             }
@@ -26,15 +26,19 @@
             main {
                 max-width: 37.5rem;
                 min-height: 100vh;
+                min-height: 100svh;
                 margin: 0 auto;
                 padding: 1.5rem 1.25rem;
-                background: #fffdf7;
+                padding-bottom: calc(1.5rem + var(--menuehoehe, 0px));
+                background: #451725;
                 overflow-wrap: anywhere;
             }
 
             h1,
             h2 {
                 line-height: 1.25;
+                text-align: center;
+                font-weight: 400;
             }
 
             h1 {
@@ -65,47 +69,179 @@
             figcaption {
                 font-size: 1rem;
                 line-height: 1.6;
-                color: #514741;
+                color: #e6ccd2;
+            }
+
+            /* galerie: ein bild pro breite, wischen zum nächsten */
+            .galerie {
+                display: flex;
+                overflow-x: auto;
+                scroll-snap-type: x mandatory;
+                scrollbar-width: none;
+            }
+
+            .galerie::-webkit-scrollbar {
+                display: none;
+            }
+
+            .galerie figure {
+                flex: 0 0 100%;
+                min-width: 0;
+                margin: 0;
+                scroll-snap-align: start;
+            }
+
+            .galerie img {
+                height: 20rem;
+                max-height: 55svh;
+                object-fit: contain;
+                background: #2b0e17;
+            }
+
+            .galerie-rahmen {
+                position: relative;
+            }
+
+            .galerie-pfeil {
+                position: absolute;
+                top: min(10rem, 27.5svh);
+                transform: translateY(-50%);
+                display: grid;
+                place-items: center;
+                width: 2.75rem;
+                min-height: 2.75rem;
+                padding: 0;
+                border-radius: 50%;
+                background: #2b0e17;
+                color: #fff7f2;
+                font-size: 2rem;
+                line-height: 1;
+            }
+
+            .galerie-pfeil.links { left: 0.5rem; }
+            .galerie-pfeil.rechts { right: 0.5rem; }
+            .galerie-pfeil:hover { background: #451725; }
+            .galerie-pfeil:disabled { opacity: 0.35; cursor: default; }
+
+            .galerie-text {
+                margin-top: 1rem;
+                padding: 1rem 1.25rem;
+                border: 1px solid #84515f;
+                border-radius: 0.25rem;
+                background: #36121e;
+            }
+
+            .galerie-text p:first-child { margin-top: 0; }
+            .galerie-text p:last-child { margin-bottom: 0; }
+
+            .galerie-punkte {
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 0.75rem;
+                margin: 1rem 0;
+            }
+
+            .galerie-punkt {
+                display: block;
+                width: 0.75rem;
+                height: 0.75rem;
+                border: 2px solid #fff7f2;
+                border-radius: 50%;
+            }
+
+            .galerie-punkt.aktiv {
+                background: #fff7f2;
+            }
+
+            .nur-screenreader {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                padding: 0;
+                overflow: hidden;
+                clip-path: inset(50%);
+                white-space: nowrap;
             }
 
             button {
                 width: 100%;
                 min-height: 3.25rem;
                 padding: 0.75rem 1rem;
-                border: 1px solid #792b30;
+                border: 1px solid #d8a6b2;
                 border-radius: 0.25rem;
-                background: #792b30;
-                color: white;
+                background: #f0d9df;
+                color: #36121e;
                 font: inherit;
                 text-align: left;
                 cursor: pointer;
             }
 
             button:hover {
-                background: #602126;
+                background: #dfbbc6;
             }
 
             button:focus-visible {
-                outline: 3px solid #185da8;
+                outline: 3px solid #f4ce85;
                 outline-offset: 3px;
             }
 
-            .zurueck {
-                margin-top: 1.75rem;
-                background: transparent;
-                color: #792b30;
+            .einstieg {
+                min-height: calc(100vh - 3rem);
+                min-height: calc(100svh - 3rem);
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
             }
 
-            .zurueck:hover {
-                background: #f0e4e3;
+            .weiter {
+                margin-top: auto;
             }
 
-            .menue-liste {
+            .ticket-platzhalter {
                 display: grid;
-                gap: 0.75rem;
+                place-items: center;
+                width: 100%;
+                max-width: 20rem;
+                min-height: 12rem;
+                margin: 2rem auto;
+                border: 2px dashed #d8a6b2;
+                font-size: 1.5rem;
             }
 
-            /* Die Ansichten teilen sich eine Seite und werden abwechselnd eingeblendet. */
+            /* menü unten fest */
+            .menueleiste {
+                position: fixed;
+                bottom: 0;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 100%;
+                max-width: 37.5rem;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                padding: 0.75rem 1rem;
+                padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+                background: #451725;
+                border-top: 1px solid #84515f;
+                z-index: 1;
+            }
+
+            .menueleiste button {
+                flex: 1 1 6rem;
+                width: auto;
+                min-width: 0;
+                font-size: 1rem;
+                text-align: center;
+                overflow-wrap: anywhere;
+            }
+
+            .menueleiste button[aria-current="page"] {
+                background: #d6a9b7;
+                box-shadow: inset 0 0 0 2px #36121e;
+            }
+
+            /* alle seiten sind in einer html, wird nur ein/ausgeblendet */
             [hidden] {
                 display: none;
             }
@@ -113,36 +249,36 @@
     </head>
     <body>
         <main>
-            <p id="status" role="status">Programmheft wird geladen …</p>
-
-            <section id="startseite" hidden>
-                <p>Landestheater Tübingen</p>
-                <h1 id="stuecktitel" tabindex="-1"></h1>
-                <p>Digitales Programmheft</p>
-                <div id="titelbild"></div>
-                <button id="oeffnen" type="button">Programmheft öffnen</button>
+            <!-- ticket + erklärung sind fest drin, nicht aus dem json -->
+            <section id="ticketseite" class="einstieg">
+                <h1 tabindex="-1">LTT<br />Playbook</h1>
+                <div class="ticket-platzhalter">Ticket</div>
+                <button id="ticket-weiter" class="weiter" type="button">Weiter</button>
             </section>
 
-            <section id="menue" hidden>
-                <h1 tabindex="-1">Inhalt</h1>
-                <nav
-                    id="menue-liste"
-                    class="menue-liste"
-                    aria-label="Kapitel"
-                ></nav>
-                <button id="zur-startseite" class="zurueck" type="button">
-                    Zurück zur Startseite
-                </button>
+            <section id="erklaerungsseite" class="einstieg" hidden>
+                <h1 tabindex="-1">Erklärung</h1>
+                <!-- TODO: richtigen erklärungstext einfügen -->
+                <p>Hier ist dann die Erklärung.</p>
+                <button id="erklaerung-weiter" class="weiter" type="button">Zum Programmheft</button>
+            </section>
+
+            <section id="startseite" hidden>
+                <h1 id="stuecktitel" tabindex="-1">Programmheft</h1>
+                <p id="status" role="status">Programmheft wird geladen …</p>
+                <div id="heftdaten" hidden>
+                    <div id="titelbild"></div>
+                    <div id="einleitung"></div>
+                </div>
             </section>
 
             <section id="inhaltsseite" hidden>
                 <h1 id="kapiteltitel" tabindex="-1"></h1>
                 <div id="kapitelinhalt"></div>
-                <button id="zum-menue" class="zurueck" type="button">
-                    Zurück zum Inhalt
-                </button>
             </section>
         </main>
+
+        <nav id="menue-liste" class="menueleiste" aria-label="Programmheft" hidden></nav>
 
         <script type="module" src="./programmheft.js"></script>
     </body>

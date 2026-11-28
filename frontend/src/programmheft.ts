@@ -1,79 +1,101 @@
 import type { Play } from "../types.gen.js";
 
-// Optionale Frontend-Ergänzung; der erzeugte Backend-Typ bleibt unverändert.
+// extra felder die nur das frontend braucht (types.gen.ts nicht anfassen!)
 type Programmheft = Play & {
     Bildunterschriften?: Record<string, string>;
+    GalleryTexts?: string[];
 };
-
-function sindBildunterschriften(daten: unknown): boolean {
-    return typeof daten === "object" && daten !== null && !Array.isArray(daten)
-        && Object.values(daten).every(text => typeof text === "string");
-}
 
 function holeElement(id: string): HTMLElement {
     const element = document.getElementById(id);
-    if (!element) throw new Error("HTML-Element fehlt: " + id);
+    if (!element) {
+        throw new Error("HTML-Element fehlt: " + id);
+    }
     return element;
 }
 
-// JSON kommt von außen und wird deshalb auch zur Laufzeit geprüft.
-function istPlay(daten: unknown): daten is Programmheft {
-    if (typeof daten !== "object" || daten === null) return false;
-    return "Title" in daten && typeof daten.Title === "string"
-        && "HeroImage" in daten && typeof daten.HeroImage === "string"
-        && "Content" in daten && typeof daten.Content === "string"
-        && (!("Gallery" in daten) || daten.Gallery === undefined
-            || (Array.isArray(daten.Gallery)
-                && daten.Gallery.every((bild: unknown) => typeof bild === "string")))
-        && (!("Bildunterschriften" in daten) || daten.Bildunterschriften === undefined
-            || sindBildunterschriften(daten.Bildunterschriften));
-}
-
+const ticketseite = holeElement("ticketseite");
+const erklaerungsseite = holeElement("erklaerungsseite");
 const startseite = holeElement("startseite");
-const menue = holeElement("menue");
+const menueleiste = holeElement("menue-liste");
 const inhaltsseite = holeElement("inhaltsseite");
 const ladestatus = holeElement("status");
+let heftGeladen = false;
+
+// höhe vom menü als css variable setzen, damit unten nix verdeckt wird
+function setzeMenueHoehe(): void {
+    const hoehe = menueleiste.offsetHeight;
+    document.documentElement.style.setProperty("--menuehoehe", hoehe + "px");
+}
+window.addEventListener("resize", setzeMenueHoehe);
 
 function zeigeAnsicht(ansicht: HTMLElement): void {
+    ticketseite.hidden = true;
+    erklaerungsseite.hidden = true;
     startseite.hidden = true;
-    menue.hidden = true;
     inhaltsseite.hidden = true;
     ansicht.hidden = false;
-    ansicht.querySelector("h1")?.focus({ preventScroll: true });
+    // menü nur auf startseite + inhaltsseite
+    menueleiste.hidden = !heftGeladen || (ansicht !== startseite && ansicht !== inhaltsseite);
+    setzeMenueHoehe();
+    if (ansicht === startseite) {
+        markiereMenuepunkt("Startseite");
+    }
+    const ueberschrift = ansicht.querySelector("h1");
+    if (ueberschrift) {
+        ueberschrift.focus({ preventScroll: true });
+    }
     window.scrollTo(0, 0);
 }
 
 function erstelleBild(pfad: string): HTMLImageElement {
     const bild = document.createElement("img");
     bild.src = pfad;
-    // Play enthält bisher keine Bildbeschreibungen.
+    // TODO: alt texte fehlen noch im json
     bild.alt = "";
     return bild;
 }
 
-function zeigeText(heft: Play): void {
-    holeElement("kapiteltitel").textContent = "Über das Stück";
-    const inhalt = holeElement("kapitelinhalt");
+// text in absätze aufteilen (leerzeile = neuer absatz)
+function fuelleText(text: string, inhalt: HTMLElement): void {
     inhalt.replaceChildren();
 
-    // Leerzeilen trennen die Absätze. Content wird als reiner Text angezeigt.
-    for (const absatz of heft.Content.split(/\r?\n\s*\r?\n/)) {
-        if (!absatz.trim()) continue;
-        const text = document.createElement("p");
-        text.textContent = absatz;
-        inhalt.appendChild(text);
+    const absaetze = text.split(/\r?\n\s*\r?\n/);
+    for (const absatz of absaetze) {
+        if (!absatz.trim()) {
+            continue;
+        }
+        const p = document.createElement("p");
+        p.textContent = absatz;
+        inhalt.appendChild(p);
     }
     if (inhalt.childElementCount === 0) {
         inhalt.textContent = "Zu diesem Stück ist noch kein Text vorhanden.";
     }
+}
+
+function zeigeText(heft: Play): void {
+    holeElement("kapiteltitel").textContent = "Über das Stück";
+    fuelleText(heft.Content, holeElement("kapitelinhalt"));
     zeigeAnsicht(inhaltsseite);
 }
 
-// TODO Change Gallery from top-down to side scrolling
-function zeigeGalerie(bilder: string[], unterschriften: Record<string, string> = {}): void {
+function zeigeGalerie(bilder: string[], unterschriften?: Record<string, string>, texte?: string[]): void {
+    if (!unterschriften) {
+        unterschriften = {};
+    }
+    if (!texte) {
+        texte = [];
+    }
     holeElement("kapiteltitel").textContent = "Bilder";
     const inhalt = holeElement("kapitelinhalt");
     inhalt.replaceChildren();
+
+    const galerie = document.createElement("div");
+    galerie.className = "galerie";
+    galerie.setAttribute("role", "region");
+    galerie.setAttribute("aria-label", "Bildergalerie");
+
     for (const pfad of bilder) {
         const bild = erstelleBild(pfad);
         bild.loading = "lazy";
@@ -84,31 +106,147 @@ function zeigeGalerie(bilder: string[], unterschriften: Record<string, string> =
             unterschrift.textContent = unterschriften[pfad];
             abbildung.appendChild(unterschrift);
         }
-        inhalt.appendChild(abbildung);
+        galerie.appendChild(abbildung);
     }
+
+    const rahmen = document.createElement("div");
+    rahmen.className = "galerie-rahmen";
+
+    // pfeile links/rechts
+    const zurueck = document.createElement("button");
+    zurueck.type = "button";
+    zurueck.className = "galerie-pfeil links";
+    zurueck.textContent = "‹";
+    zurueck.setAttribute("aria-label", "Vorheriges Bild");
+
+    const weiter = document.createElement("button");
+    weiter.type = "button";
+    weiter.className = "galerie-pfeil rechts";
+    weiter.textContent = "›";
+    weiter.setAttribute("aria-label", "Nächstes Bild");
+    zurueck.hidden = bilder.length < 2;
+    weiter.hidden = bilder.length < 2;
+
+    // wenn ein bild keinen text hat, bleibt der vom vorherigen bild stehen
+    let lastText = "";
+    const bildTexte = bilder.map((_, index) => {
+        let text = "";
+        if (texte[index]) {
+            text = texte[index].trim();
+        }
+        if (text) {
+            lastText = text;
+        }
+        return lastText;
+    });
+
+    const textfeld = document.createElement("section");
+    textfeld.className = "galerie-text";
+    textfeld.setAttribute("aria-label", "Text zum Bild");
+
+    // punkte unter der galerie
+    const punkte = document.createElement("div");
+    punkte.className = "galerie-punkte";
+    punkte.setAttribute("aria-hidden", "true");
+    punkte.hidden = bilder.length < 2;
+    const dots: HTMLSpanElement[] = [];
+    for (let i = 0; i < bilder.length; i++) {
+        const punkt = document.createElement("span");
+        punkte.appendChild(punkt);
+        dots.push(punkt);
+    }
+
+    // für screenreader: "bild x von y"
+    const position = document.createElement("p");
+    position.className = "nur-screenreader";
+    position.setAttribute("role", "status");
+
+    let aktuellesBild = 0;
+    let angezeigterText: string | undefined;
+
+    function updateAnzeige(): void {
+        zurueck.disabled = aktuellesBild === 0;
+        weiter.disabled = aktuellesBild === bilder.length - 1;
+        dots.forEach((punkt, index) => {
+            punkt.className = index === aktuellesBild ? "galerie-punkt aktiv" : "galerie-punkt";
+        });
+        const positionstext = "Bild " + (aktuellesBild + 1) + " von " + bilder.length;
+        if (position.textContent !== positionstext) {
+            position.textContent = positionstext;
+        }
+
+        const bildText = bildTexte[aktuellesBild];
+        // nur neu bauen wenn sich der text ändert
+        if (bildText !== angezeigterText) {
+            textfeld.hidden = !bildText;
+            textfeld.replaceChildren();
+            if (bildText) {
+                fuelleText(bildText, textfeld);
+            }
+            angezeigterText = bildText;
+        }
+    }
+
+    function geheZuBild(index: number): void {
+        const ziel = Math.max(0, Math.min(index, bilder.length - 1));
+        console.log("gehe zu bild", ziel);
+        const reduziert = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        galerie.scrollTo({ left: ziel * galerie.clientWidth, behavior: reduziert ? "auto" : "smooth" });
+    }
+
+    zurueck.addEventListener("click", () => geheZuBild(aktuellesBild - 1));
+    weiter.addEventListener("click", () => geheZuBild(aktuellesBild + 1));
+
+    // beim wischen aktuelles bild ausrechnen
+    galerie.addEventListener("scroll", () => {
+        if (galerie.clientWidth === 0) {
+            return;
+        }
+        const index = Math.round(galerie.scrollLeft / galerie.clientWidth);
+        aktuellesBild = Math.max(0, Math.min(index, bilder.length - 1));
+        updateAnzeige();
+    }, { passive: true });
+
+    rahmen.append(galerie, zurueck, weiter);
+    inhalt.append(rahmen, punkte, position, textfeld);
+    updateAnzeige();
     zeigeAnsicht(inhaltsseite);
 }
 
-function menueknopf(text: string, aktion: () => void): void {
+function markiereMenuepunkt(text: string): void {
+    for (const knopf of menueleiste.querySelectorAll("button")) {
+        if (knopf.textContent === text) {
+            knopf.setAttribute("aria-current", "page");
+        } else {
+            knopf.removeAttribute("aria-current");
+        }
+    }
+}
+
+function addMenueKnopf(text: string, aktion: () => void): void {
     const knopf = document.createElement("button");
     knopf.type = "button";
     knopf.textContent = text;
-    knopf.addEventListener("click", aktion);
-    holeElement("menue-liste").appendChild(knopf);
+    knopf.addEventListener("click", () => {
+        aktion();
+        markiereMenuepunkt(text);
+    });
+    menueleiste.appendChild(knopf);
 }
 
-holeElement("oeffnen").addEventListener("click", () => zeigeAnsicht(menue));
-holeElement("zur-startseite").addEventListener("click", () => zeigeAnsicht(startseite));
-holeElement("zum-menue").addEventListener("click", () => zeigeAnsicht(menue));
+holeElement("ticket-weiter").addEventListener("click", () => zeigeAnsicht(erklaerungsseite));
+holeElement("erklaerung-weiter").addEventListener("click", () => zeigeAnsicht(startseite));
 
 async function ladeHeft(): Promise<void> {
     try {
-        // Das Backend stellt content.json neben der veröffentlichten HTML-Datei bereit.
         const antwort = await fetch("./content.json");
-        if (!antwort.ok) throw new Error("HTTP-Fehler " + antwort.status);
-        const daten: unknown = await antwort.json();
-        if (!istPlay(daten)) throw new Error("Ungültige Play-Daten");
-        const heft = daten;
+        if (!antwort.ok) {
+            throw new Error("HTTP-Fehler " + antwort.status);
+        }
+
+        // TODO: vielleicht doch noch prüfen ob das json passt
+        const heft = await antwort.json() as Programmheft;
+        console.log("heft geladen:", heft);
 
         document.title = heft.Title + " – Digitales Programmheft";
         holeElement("stuecktitel").textContent = heft.Title;
@@ -117,15 +255,37 @@ async function ladeHeft(): Promise<void> {
         if (heft.HeroImage.trim()) {
             titelbild.appendChild(erstelleBild(heft.HeroImage));
         }
+        fuelleText(heft.Content, holeElement("einleitung"));
 
-        holeElement("menue-liste").replaceChildren();
-        menueknopf("Über das Stück", () => zeigeText(heft));
-        const bilder = (heft.Gallery ?? []).filter(pfad => pfad.trim() !== "");
-        if (bilder.length > 0) {
-            menueknopf("Bilder", () => zeigeGalerie(bilder, heft.Bildunterschriften));
+        menueleiste.replaceChildren();
+        addMenueKnopf("Startseite", () => zeigeAnsicht(startseite));
+        addMenueKnopf("Über das Stück", () => zeigeText(heft));
+
+        // leere bilder rausfiltern, texte mitnehmen damit die reihenfolge passt
+        const bilder: string[] = [];
+        const texte: string[] = [];
+        if (heft.Gallery) {
+            heft.Gallery.forEach((pfad, index) => {
+                if (pfad.trim() === "") {
+                    return;
+                }
+                bilder.push(pfad);
+                let text = "";
+                if (heft.GalleryTexts && heft.GalleryTexts[index]) {
+                    text = heft.GalleryTexts[index];
+                }
+                texte.push(text);
+            });
         }
+        if (bilder.length > 0) {
+            addMenueKnopf("Bilder", () => zeigeGalerie(bilder, heft.Bildunterschriften, texte));
+        }
+        markiereMenuepunkt("Startseite");
+        heftGeladen = true;
         ladestatus.hidden = true;
-        startseite.hidden = false;
+        holeElement("heftdaten").hidden = false;
+        menueleiste.hidden = startseite.hidden && inhaltsseite.hidden;
+        setzeMenueHoehe();
     } catch (fehler) {
         ladestatus.hidden = false;
         ladestatus.textContent = "Das Programmheft konnte nicht geladen werden. Bitte laden Sie die Seite erneut.";
@@ -133,4 +293,4 @@ async function ladeHeft(): Promise<void> {
     }
 }
 
-void ladeHeft();
+ladeHeft();

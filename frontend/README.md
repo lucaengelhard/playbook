@@ -9,7 +9,6 @@
 - `testdaten/content.json`: Beispielinhalte zum lokalen Testen.
 - `testdaten/assets/`: Bilder des Testhefts.
 - `tsconfig.json`: Einstellungen für die TypeScript-Prüfung.
-- `build.ps1`: Bisher nur TODO-Kommentare, noch kein fertiger Build.
 - `dist/`: HTML- und JavaScript-Ausgabe für die spätere Veröffentlichung.
 
 ## Wo Änderungen machen?
@@ -20,11 +19,21 @@ Beispielinhalte unter `testdaten/` anpassen.
 
 Die Dateien in `dist/` nicht direkt bearbeiten.
 
-## Aktueller Stand
+## Bauen und lokal testen
 
-`tsc.cmd -p frontend/tsconfig.json` prüft momentan nur die Typen.
-Es wird dabei noch keine neue JavaScript-Ausgabe erzeugt.
+```powershell
+.\frontend\build.ps1            # TypeScript übersetzen, dist/ aktualisieren
+.\frontend\build.ps1 -Vorschau  # zusätzlich frontend/vorschau/ erzeugen
+```
 
-Das Frontend erwartet `content.json` neben der veröffentlichten
-HTML-Datei. Die Testdaten werden noch nicht automatisch dorthin kopiert.
+Das Frontend lädt `content.json` und die Bilder aus demselben Ordner
+wie `index.html`. `dist/` enthält bewusst keine Testdaten, deshalb
+zeigt `dist/index.html` allein nur eine Fehlermeldung.
+
+Zum Testen `frontend/vorschau/index.html` mit Live Server öffnen
+(nicht per Doppelklick, über `file://` funktioniert `fetch` nicht).
+`vorschau/` enthält `dist/` und `testdaten/` zusammen, wird bei jedem
+Aufruf neu erzeugt und nicht eingecheckt.
+
+Nur Typen prüfen, ohne etwas zu erzeugen: `tsc.cmd -p frontend/tsconfig.json`
 

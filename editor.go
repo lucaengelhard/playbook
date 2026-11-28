@@ -122,8 +122,18 @@ func createEditor(play *Play, isNewPlay bool) *widget.Form {
 	//Create all standard widgets
 	titleEntry := createTitleEntry(*play)
 
-	heroImageButton := widget.NewButton("Select...", nil)
-	galleryButton := widget.NewButton("Select Images...", nil)
+	heroImageText := "Select..."
+	if play.HeroImage != "" {
+		heroImageText = play.HeroImage
+	}
+	heroImageButton := widget.NewButton(heroImageText, nil)
+
+	galleryButtonText := "Select Images..."
+	if len(play.Gallery) > 0 {
+		galleryButtonText = strings.Join(play.Gallery, "\n")
+	}
+	galleryButton := widget.NewButton(galleryButtonText, nil)
+
 	newTextButton := widget.NewButton("Content", nil)
 	newPictureButton := widget.NewButton("Image", nil)
 
@@ -132,9 +142,9 @@ func createEditor(play *Play, isNewPlay bool) *widget.Form {
 	buttons := []*widget.Button{heroImageButton, galleryButton, newTextButton, newPictureButton}
 
 	//Implementation of the button functions
-	heroImageButton.OnTapped = func() { imageSelector(0, buttons, play, form) }
-	pictureButtonfunc := func() { imageSelector(1, buttons, play, form) }
-	galleryButton.OnTapped = func() { imageSelector(2, buttons, play, form) }
+	heroImageButton.OnTapped = func() { imageSelector(0, buttons, heroImageButton, galleryButton, play, form) }
+	pictureButtonfunc := func() { imageSelector(1, buttons, heroImageButton, galleryButton, play, form) }
+	galleryButton.OnTapped = func() { imageSelector(2, buttons, heroImageButton, galleryButton, play, form) }
 
 	newTextButton.OnTapped = func() {
 		var c = widget.NewMultiLineEntry()
@@ -245,7 +255,12 @@ func enableButtons(buttons []*widget.Button) {
 	}
 }
 
-func imageSelector(i int, buttons []*widget.Button, play *Play, form *widget.Form) {
+func imageSelector(i int,
+	buttons []*widget.Button,
+	heroImageButton *widget.Button,
+	galleryButton *widget.Button,
+	play *Play,
+	form *widget.Form) {
 	// i = 0: HeroImage, i = 1: image in text, i = 3 gallery
 
 	imageTypeFilter := zenity.FileFilters{
@@ -279,6 +294,9 @@ func imageSelector(i int, buttons []*widget.Button, play *Play, form *widget.For
 		}
 
 		if i == 0 {
+			fyne.Do(func() {
+				heroImageButton.Text = play.HeroImage
+			})
 			play.HeroImage = file
 		}
 		if i == 1 {
@@ -287,7 +305,7 @@ func imageSelector(i int, buttons []*widget.Button, play *Play, form *widget.For
 		if i == 2 {
 			play.Gallery = files
 			fyne.Do(func() {
-				buttons[2].Text = strings.Join(play.Gallery, "\n")
+				galleryButton.Text = strings.Join(play.Gallery, "\n")
 			})
 		}
 		fyne.Do(form.Refresh)

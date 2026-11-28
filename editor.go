@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"uuid"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -15,9 +16,10 @@ import (
 	"github.com/ncruces/zenity"
 )
 
-//go:embed all:frontend
+//go:embed all:frontend/dist
 var frontendFs embed.FS
 var contents []*Content
+var frontendPath = path.Join("frontend", "dist")
 
 type Play struct {
 	Title     string
@@ -41,14 +43,14 @@ func Scaffold(play *Play) error {
 	if err != nil {
 		return err
 	}
+	entries, err := frontendFs.ReadDir(frontendPath)
 
-	entries, err := frontendFs.ReadDir("frontend")
 	for _, entry := range entries {
 		if entry.IsDir() {
 			// TODO
 			continue
 		}
-		filePath := path.Join("frontend", entry.Name())
+		filePath := path.Join(frontendPath, entry.Name())
 		file, err := os.ReadFile(filePath)
 		if err != nil {
 			log.Println("Error while reading template file", err)
@@ -66,8 +68,9 @@ func Scaffold(play *Play) error {
 		return err
 	}
 
-	play.HeroImage = path.Join("media", path.Base(play.HeroImage))
-	err = os.WriteFile(path.Join(dirPath, play.HeroImage), heroImage, 0755)
+	heroImagePath := NewMediaPath(play.HeroImage)
+	play.HeroImage = heroImagePath
+	err = os.WriteFile(path.Join(dirPath, heroImagePath), heroImage, 0755)
 	if err != nil {
 		return err
 	}
@@ -85,6 +88,24 @@ func Scaffold(play *Play) error {
 			}
 		}
 	}
+	if len(play.Gallery) > 0 {
+		for i, fsPath := range play.Gallery {
+			image, err := os.ReadFile(fsPath)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			mediaPath := NewMediaPath(fsPath)
+			err = os.WriteFile(path.Join(dirPath, mediaPath), image, 0755)
+
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			play.Gallery[i] = mediaPath
+		}
+	}
 
 	content, err := json.Marshal(play)
 	if err != nil {
@@ -94,7 +115,7 @@ func Scaffold(play *Play) error {
 
 }
 
-func createEditor(play *Play) *widget.Form {
+func createEditor(play *Play, isNewPlay bool) *widget.Form {
 	var form *widget.Form
 	var entries []*widget.Entry
 
@@ -158,7 +179,15 @@ func createEditor(play *Play) *widget.Form {
 		if play.HeroImage == "" {
 			return errors.New("Hero image is required")
 		}
-		info, err := os.Stat(play.HeroImage)
+
+		var heroImagePath string
+		if isNewPlay {
+			heroImagePath = play.HeroImage
+		} else {
+			heroImagePath = path.Join("plays", play.Title, play.HeroImage)
+		}
+
+		info, err := os.Stat(heroImagePath)
 		if err != nil || !info.Mode().IsRegular() {
 			return errors.New("Invalid hero image file")
 		}
@@ -257,6 +286,9 @@ func imageSelector(i int, buttons []*widget.Button, play *Play, form *widget.For
 		}
 		if i == 2 {
 			play.Gallery = files
+			fyne.Do(func() {
+				buttons[2].Text = strings.Join(play.Gallery, "\n")
+			})
 		}
 		fyne.Do(form.Refresh)
 	}()
@@ -283,4 +315,9 @@ func GetAllButtons(form *widget.Form) []*widget.Button {
 	}
 
 	return buttons
+}
+
+func NewMediaPath(p string) string {
+	name := path.Base(p)
+	return path.Join("media", uuid.New().String()+"_"+name)
 }

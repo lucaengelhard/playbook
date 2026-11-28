@@ -43,6 +43,8 @@ var State = &Observable[[]Play]{
 func update() error {
 	plays := []Play{}
 
+	os.MkdirAll("plays", 0755)
+
 	entries, err := os.ReadDir("plays")
 	if err != nil {
 		return err

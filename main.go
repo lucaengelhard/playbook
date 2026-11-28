@@ -26,7 +26,7 @@ func main() {
 	}
 
 	a := app.New()
-	w := a.NewWindow("Hello World")
+	w := a.NewWindow("Playbook")
 
 	var width float32 = GlobalSettings.Data.WindowSize.first
 	var height float32 = GlobalSettings.Data.WindowSize.second
@@ -40,16 +40,24 @@ func main() {
 		playList.Objects = []fyne.CanvasObject{}
 		for _, play := range p {
 			playList.Objects = append(playList.Objects, widget.NewButton(play.Title, func() {
-				nav.PushWithTitle(createEditor(&play), play.Title)
+				nav.PushWithTitle(createEditor(&play, false), play.Title)
 			}))
 		}
 	})
 
 	sidebar := container.NewVScroll(
 		container.NewVBox(
+			widget.NewButton("Update", func() {
+				err := update()
+				if err != nil {
+					log.Println(err)
+					return
+				}
+			}),
+			widget.NewSeparator(),
 			playList,
 			widget.NewButton("New", func() {
-				nav.PushWithTitle(createEditor(&Play{}), "New Play")
+				nav.PushWithTitle(createEditor(&Play{}, true), "New Play")
 			}),
 		))
 
